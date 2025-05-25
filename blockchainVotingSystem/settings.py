@@ -37,6 +37,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    #third-party apps
+    "drf_yasg",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt",
+    "corsheaders",
+    # custom apps
+    'accounts',
+    'elections',
+    'votes',
+    'blockchain',
+
 ]
 
 MIDDLEWARE = [
