@@ -1,8 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from datetime import datetime
-from .managers import UserManager
-from .utils import generate_did
+from accounts.managers import UserManager
+from accounts.utils import generate_did
 
 LEVEL_CHOICES = (
     (1, 'Level 100'),
