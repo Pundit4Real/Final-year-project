@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from datetime import datetime
 from .managers import UserManager
+from .utils import generate_did
 
 LEVEL_CHOICES = (
     (1, 'Level 100'),
@@ -11,13 +12,14 @@ LEVEL_CHOICES = (
 )
 
 class User(AbstractBaseUser, PermissionsMixin):
-    index_number = models.CharField(max_length=20, unique=True, default="UEB3502721")
+    index_number = models.CharField(max_length=20, unique=True)
     full_name = models.CharField(max_length=255)
     year_enrolled = models.IntegerField(default=datetime.now().year)
+    level = models.IntegerField(choices=LEVEL_CHOICES, null=True, blank=True)
     email = models.EmailField(unique=True)
-    did = models.CharField(max_length=100, unique=True)
-    wallet_address = models.CharField(max_length=42, unique=True)
-    private_key = models.TextField()
+    did = models.CharField(max_length=100, unique=True, blank=True)
+    wallet_address = models.CharField(max_length=42, unique=True, blank=True)
+    private_key = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
@@ -32,6 +34,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def current_level(self):
+        if self.level:
+            return self.level
         current_year = datetime.now().year
-        level = current_year - self.year_enrolled + 1
-        return min(level, 4)
+        return min(current_year - self.year_enrolled + 1, 4)
+
+    def save(self, *args, **kwargs):
+        if not self.did or not self.wallet_address or not self.private_key:
+            address, did, private_key = generate_did()
+            self.wallet_address = address
+            self.did = did
+            self.private_key = private_key
+        super().save(*args, **kwargs)

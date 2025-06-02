@@ -37,12 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     #third-party apps
     "drf_yasg",
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
+    
     # custom apps
     'accounts',
     'elections',
@@ -134,3 +136,18 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.User'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+SIMPLE_JWT = {
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ROTATE_REFRESH_TOKENS': True,
+}
+
+INSTALLED_APPS += ['rest_framework_simplejwt.token_blacklist']
