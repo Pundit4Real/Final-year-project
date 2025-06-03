@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
-from accounts.models import User
+from accounts.models import User, Department
 
 class UserCreationForm(forms.ModelForm):
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
@@ -9,7 +9,7 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('index_number', 'full_name', 'email', 'year_enrolled', 'level')
+        fields = ('index_number', 'full_name', 'email', 'year_enrolled', 'level', 'department')
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -28,8 +28,8 @@ class UserCreationForm(forms.ModelForm):
 class UserAdmin(BaseUserAdmin):
     add_form = UserCreationForm
     model = User
-    list_display = ('index_number', 'full_name', 'email', 'current_level', 'did', 'is_staff', 'is_active')
-    list_filter = ('is_staff', 'is_active')
+    list_display = ('index_number', 'full_name', 'email', 'department', 'current_level', 'did', 'is_staff', 'is_active')
+    list_filter = ('is_staff', 'is_active', 'department')
     search_fields = ('index_number', 'full_name', 'email', 'did')
     ordering = ('index_number',)
 
@@ -37,7 +37,7 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('index_number', 'email', 'password')}),
-        ('Personal Info', {'fields': ('full_name', 'year_enrolled', 'level')}),
+        ('Personal Info', {'fields': ('full_name', 'year_enrolled', 'level', 'department')}),
         ('Blockchain Info', {'fields': ('did', 'wallet_address', 'private_key')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
     )
@@ -45,8 +45,9 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('index_number', 'full_name', 'email', 'year_enrolled', 'level', 'password1', 'password2')}
+            'fields': ('index_number', 'full_name', 'email', 'year_enrolled', 'level', 'department', 'password1', 'password2')}
         ),
     )
 
 admin.site.register(User, UserAdmin)
+admin.site.register(Department)

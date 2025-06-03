@@ -1,12 +1,14 @@
 from django.db import models
-from accounts.models import User
 from datetime import datetime
+from accounts.models import User, Department
 
 class Election(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

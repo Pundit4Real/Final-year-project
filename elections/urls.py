@@ -1,6 +1,7 @@
 from django.urls import path
+from .views import ElectionListView, ElectionDetailView
 
 urlpatterns = [
-    # Add at least one dummy or real path
-    path('test/', lambda request: HttpResponse("Test successful")),
+    path('elections/', ElectionListView.as_view(), name='election-list'),
+    path('elections/<int:pk>/', ElectionDetailView.as_view(), name='election-detail'),
 ]

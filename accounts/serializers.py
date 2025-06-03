@@ -1,15 +1,21 @@
 from rest_framework import serializers
 from datetime import datetime
-from accounts.models import User
+from accounts.models import User,Department
 
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     level = serializers.IntegerField(required=False)
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(), required=False, write_only=True
+    )
+    department_name = serializers.CharField(source='department.name', read_only=True)
 
     class Meta:
         model = User
-        fields = ['index_number', 'full_name', 'email', 'year_enrolled', 'level', 'password']
-
+        fields = [
+            'index_number', 'full_name', 'email', 'year_enrolled', 'level',
+            'department', 'department_name', 'password'
+        ]
 
     def create(self, validated_data):
         level = validated_data.get('level')
@@ -20,7 +26,6 @@ class SignupSerializer(serializers.ModelSerializer):
             validated_data['year_enrolled'] = current_year - (level - 1)
 
         return User.objects.create_user(**validated_data)
-
 
 
 class LoginSerializer(serializers.Serializer):

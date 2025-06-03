@@ -1,12 +1,14 @@
 from django.contrib import admin
+from django import forms
 from .models import Election, Position, Candidate
 
 
 @admin.register(Election)
 class ElectionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'start_date', 'end_date', 'created_at')
-    search_fields = ('title',)
+    list_display = ('title', 'department', 'start_date', 'end_date', 'created_at')
+    search_fields = ('title', 'department__name')
     ordering = ('-start_date',)
+    list_filter = ('department', 'start_date')
 
 
 @admin.register(Position)
@@ -20,11 +22,24 @@ class PositionAdmin(admin.ModelAdmin):
     get_eligible_levels.short_description = 'Eligible Levels'
 
 
+class CandidateAdminForm(forms.ModelForm):
+    class Meta:
+        model = Candidate
+        fields = '__all__'
+
+    def clean_student(self):
+        student = self.cleaned_data.get("student")
+        if student.current_level == 4:
+            raise forms.ValidationError("Students in Level 400 are not eligible to contest in elections.")
+        return student
+
+
 @admin.register(Candidate)
 class CandidateAdmin(admin.ModelAdmin):
+    form = CandidateAdminForm
     list_display = ('student', 'position', 'get_election')
     search_fields = ('student__full_name', 'position__title')
-    list_filter = ('position__election',)
+    list_filter = ('position__election', 'student__department')
 
     def get_election(self, obj):
         return obj.position.election

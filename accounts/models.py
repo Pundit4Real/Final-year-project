@@ -11,11 +11,23 @@ LEVEL_CHOICES = (
     (4, 'Level 400'),
 )
 
+class Department(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "Department"
+        verbose_name_plural = "Departments"
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     index_number = models.CharField(max_length=20, unique=True)
     full_name = models.CharField(max_length=255)
     year_enrolled = models.IntegerField(default=datetime.now().year)
     level = models.IntegerField(choices=LEVEL_CHOICES, null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     email = models.EmailField(unique=True)
     did = models.CharField(max_length=100, unique=True, blank=True)
     wallet_address = models.CharField(max_length=42, unique=True, blank=True)

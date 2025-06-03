@@ -20,6 +20,7 @@ class SignupView(APIView):
                 'password': openapi.Schema(type=openapi.TYPE_STRING, description='Password'),
                 'level': openapi.Schema(type=openapi.TYPE_INTEGER, description='Optional current level (1–4)'),
                 'year_enrolled': openapi.Schema(type=openapi.TYPE_INTEGER, description='Optional year student enrolled'),
+                'department': openapi.Schema(type=openapi.TYPE_INTEGER, description='Department ID'),
             },
             required=['index_number', 'full_name', 'email', 'password']
         )
@@ -33,6 +34,7 @@ class SignupView(APIView):
                 "index_number": user.index_number,
                 "did": user.did,
                 "current_level": user.current_level,
-                "year_enrolled": user.year_enrolled
+                "year_enrolled": user.year_enrolled,
+                "department": user.department.name if user.department else None
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
