@@ -1,6 +1,7 @@
 from django.urls import path
+from votes.views import CastVoteView, VoteVerificationView
 
 urlpatterns = [
-    # Add at least one dummy or real path
-    path('test/', lambda request: HttpResponse("Test successful")),
+    path('cast/', CastVoteView.as_view(), name='cast-vote'),
+    path('verify/', VoteVerificationView.as_view(), name='verify-vote'),
 ]

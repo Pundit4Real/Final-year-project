@@ -5,7 +5,7 @@ from elections.models import Election, Position, Candidate
 
 @admin.register(Election)
 class ElectionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'department', 'start_date', 'end_date', 'created_at')
+    list_display = ('title', 'department','id', 'start_date', 'end_date', 'created_at')
     search_fields = ('title', 'department__name')
     ordering = ('-start_date',)
     list_filter = ('department', 'start_date')
@@ -13,7 +13,7 @@ class ElectionAdmin(admin.ModelAdmin):
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'election', 'get_eligible_levels', 'get_eligible_departments')
+    list_display = ('title', 'election','id', 'get_eligible_levels', 'get_eligible_departments')
     search_fields = ('title', 'election__title')
     list_filter = ('election', 'eligible_departments')
 
@@ -49,7 +49,7 @@ class CandidateAdminForm(forms.ModelForm):
 @admin.register(Candidate)
 class CandidateAdmin(admin.ModelAdmin):
     form = CandidateAdminForm
-    list_display = ('student', 'position', 'get_election')
+    list_display = ('student', 'position', 'get_election','id')
     search_fields = ('student__full_name', 'position__title')
     list_filter = ('position__election', 'student__department')
 
