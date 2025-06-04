@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import Election, Position, Candidate
+from elections.models import Election, Position, Candidate
 
 
 @admin.register(Election)
@@ -13,13 +13,17 @@ class ElectionAdmin(admin.ModelAdmin):
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'election', 'get_eligible_levels')
+    list_display = ('title', 'election', 'get_eligible_levels', 'get_eligible_departments')
     search_fields = ('title', 'election__title')
-    list_filter = ('election',)
+    list_filter = ('election', 'eligible_departments')
 
     def get_eligible_levels(self, obj):
         return ", ".join(f"Level {lvl * 100}" for lvl in obj.eligible_levels)
     get_eligible_levels.short_description = 'Eligible Levels'
+
+    def get_eligible_departments(self, obj):
+        return ", ".join([d.name for d in obj.eligible_departments.all()])
+    get_eligible_departments.short_description = 'Eligible Departments'
 
 
 class CandidateAdminForm(forms.ModelForm):
@@ -27,11 +31,19 @@ class CandidateAdminForm(forms.ModelForm):
         model = Candidate
         fields = '__all__'
 
-    def clean_student(self):
-        student = self.cleaned_data.get("student")
-        if student.current_level == 4:
-            raise forms.ValidationError("Students in Level 400 are not eligible to contest in elections.")
-        return student
+    def clean(self):
+        cleaned_data = super().clean()
+        student = cleaned_data.get("student")
+        position = cleaned_data.get("position")
+
+        if student and student.current_level == 4:
+            raise forms.ValidationError("Students in Level 400 are not eligible to contest.")
+
+        if position and not position.is_user_eligible(student):
+            raise forms.ValidationError("This student does not belong to an eligible department for this position.")
+
+        return cleaned_data
+
 
 
 @admin.register(Candidate)

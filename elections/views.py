@@ -2,9 +2,9 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Election
-from .serializers import ElectionSerializer, ElectionDetailSerializer
-from datetime import datetime
+from elections.models import Election
+from elections.serializers import ElectionSerializer, ElectionDetailSerializer
+# from datetime import datetime
 from django.db.models import Q
 
 

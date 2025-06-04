@@ -36,8 +36,14 @@ class CandidateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         student = data.get('student')
+        position = data.get('position')
+
         if student.current_level == 4:
             raise serializers.ValidationError("Students in Level 400 are not eligible to contest.")
+
+        if not position.is_user_eligible(student):
+            raise serializers.ValidationError("This student is not eligible to contest for this position.")
+
         return data
 
 

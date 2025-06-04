@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import datetime
+from django.utils import timezone
 from accounts.models import User, Department
 
 class Election(models.Model):
@@ -20,20 +21,21 @@ class Election(models.Model):
         return self.title
     
     def is_active(self):
-        now = datetime.now()
+        now = timezone.now()
         return self.start_date <= now <= self.end_date
 
     def has_started(self):
-        return datetime.now() >= self.start_date
+        return timezone.now() >= self.start_date
 
     def has_ended(self):
-        return datetime.now() > self.end_date
+        return timezone.now() > self.end_date
 
 
 class Position(models.Model):
     election = models.ForeignKey(Election, related_name='positions', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     eligible_levels = models.JSONField(default=list)  # Example: [1, 2, 3]
+    eligible_departments = models.ManyToManyField(Department, blank=True)
 
     class Meta:
         ordering = ['election', 'title']
@@ -44,7 +46,12 @@ class Position(models.Model):
         return f"{self.title} - {self.election.title}"
 
     def is_user_eligible(self, user):
-        return user.current_level in self.eligible_levels
+        level_ok = user.current_level in self.eligible_levels
+        department_ok = (
+            self.eligible_departments.count() == 0 or
+            user.department in self.eligible_departments.all()
+        )
+        return level_ok and department_ok
 
 
 class Candidate(models.Model):

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ElectionListView, ElectionDetailView
+from elections.views import ElectionListView, ElectionDetailView
 
 urlpatterns = [
     path('elections/', ElectionListView.as_view(), name='election-list'),
