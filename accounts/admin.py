@@ -49,5 +49,8 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
 
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ('name','id')
+
 admin.site.register(User, UserAdmin)
-admin.site.register(Department)
+admin.site.register(Department, DepartmentAdmin)

@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from votes.models import Vote
+from elections.models import Election, Position, Candidate
 from votes.serializers import AnonymousVoteSerializer
+from django.db.models import Count
 
 
 class CastVoteView(generics.CreateAPIView):
@@ -13,26 +15,33 @@ class CastVoteView(generics.CreateAPIView):
 
     @swagger_auto_schema(
         operation_summary="Cast a vote",
-        operation_description="Allows an authenticated student to vote anonymously. Returns a receipt for verification.",
-        responses={
-            201: openapi.Response(
-                description="Vote cast successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "message": openapi.Schema(type=openapi.TYPE_STRING),
-                        "receipt": openapi.Schema(type=openapi.TYPE_STRING),
-                        "timestamp": openapi.Schema(type=openapi.FORMAT_DATETIME),
-                        "position": openapi.Schema(type=openapi.TYPE_STRING),
-                        "election": openapi.Schema(type=openapi.TYPE_STRING),
-                    }
-                )
-            ),
-            400: "Invalid input or already voted."
-        }
+        operation_description="Vote anonymously using election, position, and candidate codes.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "election_code": openapi.Schema(type=openapi.TYPE_STRING),
+                "position_code": openapi.Schema(type=openapi.TYPE_STRING),
+                "candidate_code": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+            required=["election_code", "position_code", "candidate_code"]
+        ),
+        responses={201: "Vote cast successfully", 400: "Invalid input or already voted."}
     )
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    def post(self, request, *args, **kwargs):
+        election_code = request.data.get("election_code")
+        position_code = request.data.get("position_code")
+        candidate_code = request.data.get("candidate_code")
+
+        if not all([election_code, position_code, candidate_code]):
+            return Response({"error": "All codes are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = {
+            "election_code": election_code,
+            "position_code": position_code,
+            "candidate_code": candidate_code
+        }
+
+        serializer = self.get_serializer(data=data, context={"request": request})
         if serializer.is_valid():
             vote_instance = serializer.save()
             return Response({
@@ -48,30 +57,13 @@ class CastVoteView(generics.CreateAPIView):
 class VoteVerificationView(APIView):
     @swagger_auto_schema(
         operation_summary="Verify a vote",
-        operation_description="Accepts a receipt and returns the vote details if valid.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
                 "receipt": openapi.Schema(type=openapi.TYPE_STRING, description="Unique receipt issued after vote"),
             },
             required=["receipt"]
-        ),
-        responses={
-            200: openapi.Response(
-                description="Verification success",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "valid": openapi.Schema(type=openapi.TYPE_BOOLEAN),
-                        "election": openapi.Schema(type=openapi.TYPE_STRING),
-                        "position": openapi.Schema(type=openapi.TYPE_STRING),
-                        "candidate": openapi.Schema(type=openapi.TYPE_STRING),
-                        "timestamp": openapi.Schema(type=openapi.FORMAT_DATETIME),
-                    }
-                )
-            ),
-            404: "No vote found for this receipt."
-        }
+        )
     )
     def post(self, request):
         receipt = request.data.get('receipt')
@@ -89,4 +81,41 @@ class VoteVerificationView(APIView):
             "position": vote.position.title,
             "candidate": vote.candidate.student.full_name,
             "timestamp": vote.timestamp,
+        })
+
+
+class VoteResultsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Get vote results for a specific election and position",
+        manual_parameters=[
+            openapi.Parameter("election_code", openapi.IN_QUERY, type=openapi.TYPE_STRING, required=True),
+            openapi.Parameter("position_code", openapi.IN_QUERY, type=openapi.TYPE_STRING, required=True),
+        ]
+    )
+    def get(self, request):
+        election_code = request.GET.get("election_code")
+        position_code = request.GET.get("position_code")
+
+        if not election_code or not position_code:
+            return Response({"error": "election_code and position_code are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            election = Election.objects.get(code=election_code)
+            position = Position.objects.get(code=position_code, election=election)
+        except (Election.DoesNotExist, Position.DoesNotExist):
+            return Response({"error": "Election or Position not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        result_data = (
+            Vote.objects.filter(election=election, position=position)
+            .values("candidate__student__full_name", "candidate__code")
+            .annotate(total_votes=Count("id"))
+            .order_by("-total_votes")
+        )
+
+        return Response({
+            "election": election.title,
+            "position": position.title,
+            "results": result_data
         })

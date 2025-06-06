@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import datetime
+# from datetime import datetime
 from django.utils import timezone
 from accounts.models import User, Department
 from accounts.utils import generate_code
@@ -23,8 +23,11 @@ class Election(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            self.code = generate_code("EL")
+            scope = "Dept" if self.department else "Uni"
+            dept_name = self.department.name if self.department else None
+            self.code = generate_code("EL", department_name=dept_name, scope=scope)
         super().save(*args, **kwargs)
+
 
     def is_active(self):
         now = timezone.now()
@@ -54,8 +57,11 @@ class Position(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            self.code = generate_code("POS")
+            dept_name = self.election.department.name if self.election and self.election.department else None
+            scope = "Dept" if self.election and self.election.department else "Uni"
+            self.code = generate_code("POS", department_name=dept_name, scope=scope)
         super().save(*args, **kwargs)
+
 
     def is_user_eligible(self, user):
         level_ok = user.current_level in self.eligible_levels
@@ -83,5 +89,7 @@ class Candidate(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            self.code = generate_code("CND", length=9)
+            dept_name = self.student.department.name if self.student and self.student.department else None
+            scope = "Dept" if self.position and self.position.election and self.position.election.department else "Uni"
+            self.code = generate_code("CND", department_name=dept_name, scope=scope, length=4)
         super().save(*args, **kwargs)

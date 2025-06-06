@@ -17,6 +17,18 @@ class SignupSerializer(serializers.ModelSerializer):
             'department', 'department_name', 'password'
         ]
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        is_admin = request.user.is_superuser if request else False
+        department = attrs.get('department')
+
+        if not is_admin and not department:
+            raise serializers.ValidationError({
+                'department': 'Department is required for non-superuser account creation.'
+            })
+
+        return attrs
+
     def create(self, validated_data):
         level = validated_data.get('level')
         year_enrolled = validated_data.get('year_enrolled')

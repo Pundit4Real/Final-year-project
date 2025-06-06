@@ -27,7 +27,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=255)
     year_enrolled = models.IntegerField(default=datetime.now().year)
     level = models.IntegerField(choices=LEVEL_CHOICES, null=True, blank=True)
-    department = models.ForeignKey(Department, on_delete=models.PROTECT)
+
+    # ⬇️ Made optional (null=True, blank=True)
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+
     email = models.EmailField(unique=True)
     did = models.CharField(max_length=100, unique=True, blank=True)
     wallet_address = models.CharField(max_length=42, unique=True, blank=True)
