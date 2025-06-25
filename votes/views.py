@@ -1,3 +1,4 @@
+from blockchain.helpers import get_results
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -118,4 +119,17 @@ class VoteResultsView(APIView):
             "election": election.title,
             "position": position.title,
             "results": result_data
+        })
+
+class BlockchainResultsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, position_code):
+        codes, counts = get_results(position_code)
+        return Response({
+            "position_code": position_code,
+            "results": [
+                {"candidate_code": code, "votes": count}
+                for code, count in zip(codes, counts)
+            ]
         })

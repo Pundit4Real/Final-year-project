@@ -1,10 +1,11 @@
 from web3 import Web3
+from dotenv import load_dotenv
+import os
 
-# Polygon Amoy Testnet Infura URL
-INFURA_URL = "https://polygon-amoy.infura.io/v3/aadf3e661b4f4d2783ed8b7ba2ee555a"
+load_dotenv()
 
 # Connect to the Polygon network
-web3 = Web3(Web3.HTTPProvider(INFURA_URL))
+web3 = Web3(Web3.HTTPProvider(os.getenv("INFURA_URL")))
 
 # Confirm connection
 if web3.is_connected():
@@ -14,7 +15,7 @@ else:
 
 
 # Replace with your wallet address
-wallet_address = "0x1d8ce29d5452544E9656E4c99bC3765bB61653A1"
+wallet_address = os.getenv("WA")
 
 # Get and print MATIC balance
 if web3.is_address(wallet_address):

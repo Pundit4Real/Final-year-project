@@ -9,7 +9,32 @@ from elections.serializers import PositionSerializer, CandidateSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.shortcuts import get_object_or_404
 from elections.models import Position, Candidate
+from blockchain.helpers import add_position, add_candidate
+# from rest_framework.views import APIView
 
+
+class PositionCreateView(generics.CreateAPIView):
+    serializer_class = PositionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        position = serializer.save()
+        # Push to blockchain
+        add_position(position.code, position.title, position.election.code)
+
+
+class CandidateCreateView(generics.CreateAPIView):
+    serializer_class = CandidateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        candidate = serializer.save()
+        # Push to blockchain
+        add_candidate(
+            candidate.position.code,
+            candidate.code,
+            candidate.student.full_name
+        )
 
 class ElectionListView(generics.ListAPIView):
     serializer_class = ElectionSerializer

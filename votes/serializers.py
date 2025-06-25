@@ -2,6 +2,12 @@ from rest_framework import serializers
 from votes.models import Vote
 from elections.models import Candidate
 from hashlib import sha256
+from blockchain.helpers import cast_vote
+from blockchain.utils import generate_receipt_hash
+import logging
+from web3 import Web3
+
+logger = logging.getLogger(__name__)
 
 class AnonymousVoteSerializer(serializers.ModelSerializer):
     candidate_code = serializers.CharField(write_only=True)
@@ -19,14 +25,11 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
     def validate(self, data):
         user = self.context['request'].user
         did = user.did
-
         if not did:
             raise serializers.ValidationError("User DID not found.")
 
-        # Hash the DID
         did_hash = sha256(did.encode()).hexdigest()
 
-        # Fetch candidate using the code
         try:
             candidate = Candidate.objects.select_related('position__election').get(code=data['candidate_code'])
         except Candidate.DoesNotExist:
@@ -35,13 +38,10 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         position = candidate.position
         election = position.election
 
-        # Ensure code consistency
         if data['position_code'] != position.code:
             raise serializers.ValidationError("Position code mismatch.")
         if data['election_code'] != election.code:
             raise serializers.ValidationError("Election code mismatch.")
-
-        # Check eligibility and election status
         if user.current_level == 4:
             raise serializers.ValidationError("Level 400 students are not allowed to vote.")
         if not position.is_user_eligible(user):
@@ -53,16 +53,47 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         if Vote.objects.filter(voter_did_hash=did_hash, position=position).exists():
             raise serializers.ValidationError("You have already voted for this position.")
 
-        # Pass the validated fields
+        # Attach the resolved objects
         data['voter_did_hash'] = did_hash
         data['position'] = position
         data['election'] = election
         data['candidate'] = candidate
         return data
-
     def create(self, validated_data):
-        # Clean up non-model fields
+        from blockchain.helpers import cast_vote
+        from blockchain.utils import generate_receipt_hash
+        from web3 import Web3
+
         validated_data.pop('candidate_code', None)
         validated_data.pop('position_code', None)
         validated_data.pop('election_code', None)
-        return Vote.objects.create(**validated_data)
+
+        candidate = validated_data['candidate']
+        position = validated_data['position']
+        election = validated_data['election']
+        voter_did_hash = validated_data['voter_did_hash']
+
+        # Generate blockchain-compatible receipt hash
+        receipt_hash = generate_receipt_hash(voter_did_hash)
+
+        # Ensure it's a proper hex string before sending to Web3
+        if isinstance(receipt_hash, bytes):
+            receipt_hash_hex = Web3.to_hex(receipt_hash)
+        else:
+            receipt_hash_hex = receipt_hash
+
+        logger.info(f"Submitting vote | Election: {election.code} | Position: {position.code} | Candidate: {candidate.code} | Receipt: {receipt_hash_hex}")
+
+        try:
+            cast_vote(position.code, candidate.code, receipt_hash_hex)
+        except Exception as e:
+            logger.exception("Blockchain vote failed")
+            raise serializers.ValidationError("Blockchain vote failed.")
+
+        return Vote.objects.create(
+            candidate=candidate,
+            position=position,
+            election=election,
+            voter_did_hash=voter_did_hash,
+            receipt=receipt_hash_hex
+        )
