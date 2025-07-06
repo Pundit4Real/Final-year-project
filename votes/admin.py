@@ -3,16 +3,23 @@ from votes.models import Vote
 
 @admin.register(Vote)
 class VoteAdmin(admin.ModelAdmin):
-    list_display = ('receipt', 'tx_hash', 'get_election_code', 'get_position_code', 'get_candidate_code', 'timestamp')
-    search_fields = ('receipt', 'tx_hash','position__code', 'candidate__code', 'election__code')
+    list_display = (
+        'receipt', 'tx_hash', 
+        'get_election_code', 'get_position_code', 'get_candidate_code', 
+        'timestamp'
+    )
+    search_fields = ('receipt', 'tx_hash', 'position__code', 'candidate__code', 'election__code')
     list_filter = ('position__election__title', 'position__title', 'timestamp')
-    readonly_fields = ('voter_did_hash', 'receipt','tx_hash', 'timestamp')
+    readonly_fields = ('voter_did_hash', 'receipt', 'tx_hash', 'timestamp', 'candidate', 'position', 'election')
 
     def has_add_permission(self, request):
-        return False  # Prevent manual vote addition
-    
-    # def has_delete_permission(self, request):
-    #     return False  # Prevent manual vote addition
+        return False  # Disable add
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # Disable delete
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Disable edit
 
     def get_election_code(self, obj):
         return obj.election.code

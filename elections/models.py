@@ -46,7 +46,8 @@ class Position(models.Model):
     title = models.CharField(max_length=100)
     eligible_levels = models.JSONField(default=list)  # Example: [1, 2, 3]
     eligible_departments = models.ManyToManyField(Department, blank=True)
-
+    is_synced = models.BooleanField(default=False)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
     class Meta:
         ordering = ['election', 'title']
         verbose_name = "Position"
@@ -77,7 +78,8 @@ class Candidate(models.Model):
     position = models.ForeignKey(Position, related_name='candidates', on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     manifesto = models.TextField(blank=True)
-
+    is_synced = models.BooleanField(default=False)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
     class Meta:
         unique_together = ('position', 'student')
         ordering = ['position']

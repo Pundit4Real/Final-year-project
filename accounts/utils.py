@@ -18,11 +18,11 @@ def generate_code(prefix, department_name=None, scope=None, length=2):
     if not Model:
         raise ValueError("Unsupported prefix for code generation")
 
-    latest = Model.objects.aggregate(Max("id"))["id__max"] or 0
-    new_number = str(latest + 1).zfill(length)
+    latest_id = Model.objects.aggregate(Max("id"))["id__max"] or 0
+    next_id = latest_id + 1
+    padded_number = str(next_id).zfill(length)
 
     dept_part = department_name[:2].upper() if department_name else "GN"
     scope_part = scope[:2].upper() if scope else "WD"
 
-    return f"{prefix}-{scope_part}-{dept_part}-{new_number}"
- 
+    return f"{prefix}-{scope_part}-{dept_part}-{padded_number}"
