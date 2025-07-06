@@ -48,6 +48,7 @@ class CastVoteView(generics.CreateAPIView):
             return Response({
                 "message": "Vote cast successfully.",
                 "receipt": vote_instance.receipt,
+                "tx_mined_hash": vote_instance.tx_hash,
                 "timestamp": vote_instance.timestamp,
                 "position": vote_instance.position.title,
                 "election": vote_instance.election.title,

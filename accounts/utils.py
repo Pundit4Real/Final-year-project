@@ -25,3 +25,4 @@ def generate_code(prefix, department_name=None, scope=None, length=2):
     scope_part = scope[:2].upper() if scope else "WD"
 
     return f"{prefix}-{scope_part}-{dept_part}-{new_number}"
+ 

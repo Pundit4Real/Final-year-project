@@ -18,9 +18,9 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         model = Vote
         fields = [
             'candidate_code', 'position_code', 'election_code',
-            'timestamp', 'receipt'
+            'timestamp', 'receipt','tx_hash'
         ]
-        read_only_fields = ['timestamp', 'receipt']
+        read_only_fields = ['timestamp', 'receipt','tx_hash']
 
     def validate(self, data):
         user = self.context['request'].user
@@ -59,6 +59,7 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         data['election'] = election
         data['candidate'] = candidate
         return data
+        
     def create(self, validated_data):
         from blockchain.helpers import cast_vote
         from blockchain.utils import generate_receipt_hash
@@ -73,19 +74,13 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         election = validated_data['election']
         voter_did_hash = validated_data['voter_did_hash']
 
-        # Generate blockchain-compatible receipt hash
+        # Create keccak256 hash of DID
         receipt_hash = generate_receipt_hash(voter_did_hash)
-
-        # Ensure it's a proper hex string before sending to Web3
-        if isinstance(receipt_hash, bytes):
-            receipt_hash_hex = Web3.to_hex(receipt_hash)
-        else:
-            receipt_hash_hex = receipt_hash
-
-        logger.info(f"Submitting vote | Election: {election.code} | Position: {position.code} | Candidate: {candidate.code} | Receipt: {receipt_hash_hex}")
+        receipt_hash_hex = Web3.to_hex(receipt_hash)
 
         try:
-            cast_vote(position.code, candidate.code, receipt_hash_hex)
+            tx_receipt = cast_vote(position.code, candidate.code, receipt_hash_hex)
+            tx_hash = tx_receipt['transactionHash'].hex()
         except Exception as e:
             logger.exception("Blockchain vote failed")
             raise serializers.ValidationError("Blockchain vote failed.")
@@ -95,5 +90,6 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
             position=position,
             election=election,
             voter_did_hash=voter_did_hash,
-            receipt=receipt_hash_hex
+            receipt=receipt_hash_hex,  # the keccak hash for verification
+            tx_hash=tx_hash            # actual tx hash for tracking on-chain
         )

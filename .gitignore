@@ -186,3 +186,14 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+
+# media files
+media
+!media/avatar.png
+
+# Migration files
+*/migrations/*.py
+!*/migrations/__init__.py
+
+.vscode

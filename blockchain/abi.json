@@ -117,12 +117,12 @@
 		"outputs": [
 			{
 				"internalType": "string[]",
-				"name": "",
+				"name": "candidateCodes",
 				"type": "string[]"
 			},
 			{
 				"internalType": "uint256[]",
-				"name": "",
+				"name": "voteCounts",
 				"type": "uint256[]"
 			}
 		],
@@ -152,30 +152,15 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "",
+				"name": "positionCode",
 				"type": "string"
 			}
 		],
-		"name": "positions",
+		"name": "positionExists",
 		"outputs": [
 			{
-				"internalType": "string",
-				"name": "code",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "title",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "electionCode",
-				"type": "string"
-			},
-			{
 				"internalType": "bool",
-				"name": "exists",
+				"name": "",
 				"type": "bool"
 			}
 		],
