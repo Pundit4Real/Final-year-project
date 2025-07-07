@@ -86,25 +86,19 @@ python manage.py runserver
 
 - Login to /admin and use sync buttons for blockchain actions.
 
-🔎 Future Enhancements
-Public results viewer interface
+## 🔎 Future Enhancements
 
-QR code voter verification
+- Public results viewer interface
 
-On-chain audit dashboard
+- QR code voter verification
 
-Gasless voting using meta-transactions
+- On-chain audit dashboard
 
-🤝 Contributing
-Want to contribute? Fork this repo and submit a PR. Open issues for feature suggestions or bugs.
+- Gasless voting using meta-transactions
 
-📝 License
-MIT © Mohammed Ali — 2025
+## 🤝 Contributing
 
-yaml
-Copy
-Edit
+- Want to contribute? Fork this repo and submit a PR. Open issues for feature suggestions or bugs.
 
----
-
-Let me know if you want this tailored further for deployment (e.g., Docker or CI/CD support), or if y
+##  📝 License
+- MIT © Mohammed Ali — 2025
