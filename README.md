@@ -61,7 +61,6 @@ A secure, transparent, and decentralized voting platform built using **Django** 
     * `admin.py`: Provides a view-only interface for cast votes in the admin.
 
 
-
 ## ⚙️ How It Works
 
 1. **Admin creates elections, positions, and candidates**.
