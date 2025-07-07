@@ -71,16 +71,20 @@ Once synced:
 ```bash
 pip install -r requirements.txt
 cp .env.example .env  # Set Alchemy URL, contract address, wallet keys
+```
 
 
+### 2. Run the Server
 
-2. Run the Server
-
+```bash
 python manage.py migrate
 python manage.py runserver
+```
 
-3. Admin Access
-Login to /admin and use sync buttons for blockchain actions.
+
+### 3. Admin Access
+
+- Login to /admin and use sync buttons for blockchain actions.
 
 🔎 Future Enhancements
 Public results viewer interface
