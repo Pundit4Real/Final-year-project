@@ -12,7 +12,7 @@ A secure, transparent, and decentralized voting platform built using **Django** 
 
 ## 💡 Tech Stack
 
-- **Backend**: Django 4+, Django Rest Framework
+- **Backend**: Django 3.10+, Django Rest Framework
 - **Blockchain**: Solidity Smart Contracts on Polygon
 - **Web3**: Web3.py with Alchemy RPC
 - **Database**: PostgreSQL or SQLite
