@@ -10,7 +10,6 @@ from rest_framework.generics import RetrieveAPIView
 from django.shortcuts import get_object_or_404
 from elections.models import Position, Candidate
 from blockchain.helpers import add_position, add_candidate
-# from rest_framework.views import APIView
 
 
 class PositionCreateView(generics.CreateAPIView):

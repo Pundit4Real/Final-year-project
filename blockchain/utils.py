@@ -1,10 +1,8 @@
 # blockchain/utils.py
-
 from web3 import Web3
 from dotenv import load_dotenv
 import os
 import json
-from eth_account import Account
 from web3.exceptions import TimeExhausted
 
 load_dotenv()
@@ -13,7 +11,7 @@ ALCHEMY_URL = os.getenv("ALCHEMY_URL")
 PRIVATE_KEY = os.getenv("PK")
 WALLET_ADDRESS = os.getenv("WA")
 CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
-CHAIN_ID = int(os.getenv("CHAIN_ID", 137))  # Polygon Mainnet default
+CHAIN_ID = int(os.getenv("CHAIN_ID", 137))
 
 web3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
 

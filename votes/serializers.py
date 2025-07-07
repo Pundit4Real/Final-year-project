@@ -2,10 +2,7 @@ from rest_framework import serializers
 from votes.models import Vote
 from elections.models import Candidate
 from hashlib import sha256
-from blockchain.helpers import cast_vote
-from blockchain.utils import generate_receipt_hash
 import logging
-from web3 import Web3
 
 logger = logging.getLogger(__name__)
 

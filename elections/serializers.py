@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from elections.models import Election, Position, Candidate
-from accounts.models import User
 
 
 class ElectionSerializer(serializers.ModelSerializer):
