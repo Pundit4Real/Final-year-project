@@ -20,17 +20,17 @@ A secure, transparent, and decentralized voting platform built using **Django** 
 
 ## 📦 Folder Structure (Important Modules)
 
-blockchain/
-├── utils.py # Transaction builder, signer, and Web3 setup
-├── helpers.py # Sync and voting helper methods
-├── abi.json # Smart contract ABI
-elections/
-├── models.py # Election, Position, Candidate models
-├── admin.py # Blockchain sync actions
-├── serializers.py # DRF serializers
-votes/
-├── models.py # Vote storage and metadata
-├── admin.py # View-only admin of cast votes
+* `blockchain/`:
+    * `utils.py`: Handles transaction building, signing, and Web3 setup.
+    * `helpers.py`: Contains essential methods for syncing and voting logic.
+    * `abi.json`: The Smart Contract Application Binary Interface.
+* `elections/`:
+    * `models.py`: Defines Election, Position, and Candidate data models.
+    * `admin.py`: Implements blockchain synchronization actions for the admin panel.
+    * `serializers.py`: DRF serializers for API data handling.
+* `votes/`:
+    * `models.py`: Manages vote storage and associated metadata.
+    * `admin.py`: Provides a view-only interface for cast votes in the admin.
 
 
 
