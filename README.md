@@ -2,13 +2,41 @@
 
 A secure, transparent, and decentralized voting platform built using **Django** and **Solidity**, integrated with the **Polygon Mainnet** via **Alchemy RPC**. It ensures tamper-proof voting processes for academic elections with a powerful admin backend.
 
-## 🔐 Core Features
+## 📦 Core Features
 
-- 🗳 Vote casting with receipt hash stored on the blockchain.
-- 🔄 Admin panel sync of candidates and positions to smart contract.
-- ✅ Sync status indicators (`✔ Synced` / `✖ Not Synced`) with timestamps.
-- 🚫 Restriction of edits/deletions after sync for data integrity.
-- 🧾 Vote logs are view-only in the Django admin.
+### ⛓️ Blockchain Features
+
+- 🗳 **Vote Casting**  
+  Receipt hashes are securely stored on the blockchain after each vote, ensuring integrity and traceability.
+
+- 🔐 **Anonymous Voting**  
+  Voters are identified using decentralized identifiers (DIDs), ensuring privacy while securing vote receipts.
+
+- ⛓️ **On-Chain Registration**  
+  Candidates and positions are registered immutably on-chain through admin-triggered actions.
+
+- ✅ **Sync Status Indicators**  
+  Real-time sync status indicators (`✔ Synced` / `✖ Not Synced`) with timestamps reflect blockchain sync state.
+
+- 🔒 **Tamper-Proof Vote Logs**  
+  Votes, once cast and synced, are stored immutably and are view-only in the system.
+
+---
+
+### 🛠️ Admin Features
+
+- 🔄 **Smart Contract Sync**  
+  Admins can push candidates and positions to the smart contract directly from the admin panel.
+
+- 🚫 **Edit/Deletion Restrictions**  
+  After syncing to blockchain, editing or deleting synced data is restricted to ensure data integrity.
+
+- 🗂️ **Off-Chain Election Management**  
+  Elections remain editable off-chain, allowing flexible setup before final sync.
+
+- 🔍 **Real-Time Sync Feedback**  
+  Admin panel displays live blockchain sync status for each synced entry.
+
 
 ## 💡 Tech Stack
 
