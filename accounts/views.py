@@ -42,10 +42,19 @@ class SignupView(APIView):
 
 
 
+from django.conf import settings
 from django.core.management import call_command
 from django.http import HttpResponse
+import os
 
 def setup_view(request):
-    call_command('migrate')
-    call_command('loaddata', 'data.json')
-    return HttpResponse("✔ Database migrated and data loaded.")
+    try:
+        # Get the absolute path to data.json in the deployed app
+        file_path = os.path.join(settings.BASE_DIR, 'data.json')
+
+        call_command('migrate')
+        call_command('loaddata', file_path)
+
+        return HttpResponse("✔ Migration + Data Load successful")
+    except Exception as e:
+        return HttpResponse(f"❌ Error: {str(e)}", status=500)
