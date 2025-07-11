@@ -51,9 +51,9 @@ class SignupView(APIView):
 # ------------------------------
 # 🛠️ One-Time Setup View (Free Plan Hack)
 # ------------------------------
-from django.views import View  # optional alternative to APIView
+# from django.views import View  # optional alternative to APIView
 
-class SetupView(View):
+class SetupView(APIView):
     def get(self, request):
         try:
             file_path = os.path.join(settings.BASE_DIR, 'data.json')
