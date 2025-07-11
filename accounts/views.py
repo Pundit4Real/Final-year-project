@@ -38,3 +38,14 @@ class SignupView(APIView):
                 "department": user.department.name if user.department else None
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+from django.core.management import call_command
+from django.http import HttpResponse
+
+def setup_view(request):
+    call_command('migrate')
+    call_command('loaddata', 'data.json')
+    return HttpResponse("✔ Database migrated and data loaded.")
