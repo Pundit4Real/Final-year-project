@@ -1,0 +1,13 @@
+name: 🔄 Keep Render App Awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # Every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔔 Sending ping to Render
+        run: curl -s https://yourapp.onrender.com > /dev/null
