@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser
-
+from django.http import JsonResponse
 from accounts.serializers import SignupSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -53,12 +53,18 @@ class SignupView(APIView):
 # ------------------------------
 # from django.views import View  # optional alternative to APIView
 
+
 class SetupView(APIView):
     def get(self, request):
         try:
             file_path = os.path.join(settings.BASE_DIR, 'data.json')
+            if not os.path.exists(file_path):
+                return JsonResponse({"error": f"❌ File not found at {file_path}"}, status=404)
+
             call_command('migrate')
             call_command('loaddata', file_path)
-            return HttpResponse("✔ Migration + Data Load successful")
+
+            return JsonResponse({"message": "✔ Migration + Data Load successful"}, status=200)
+
         except Exception as e:
-            return HttpResponse(f"❌ Error: {str(e)}", status=500)
+            return JsonResponse({"error": str(e)}, status=500)
