@@ -35,12 +35,24 @@ class Election(models.Model):
 
     def __str__(self):
         return self.title
-
+    
     def save(self, *args, **kwargs):
+        # Auto-generate code if missing
         if not self.code:
             scope = "Dept" if self.department else "Uni"
             dept_name = self.department.name if self.department else None
             self.code = generate_code("EL", department_name=dept_name, scope=scope)
+
+        # Automatically determine status based on dates
+        now = timezone.now()
+        if self.status not in [self.Status.SUSPENDED, self.Status.CANCELLED]:  
+            if now < self.start_date:
+                self.status = self.Status.UPCOMING
+            elif self.start_date <= now <= self.end_date:
+                self.status = self.Status.ONGOING
+            else:
+                self.status = self.Status.ENDED
+
         super().save(*args, **kwargs)
 
     def is_active(self):
@@ -58,3 +70,11 @@ class Election(models.Model):
 
     def get_status(self):
         return self.get_status_display()
+
+    def has_voted(self, user):
+        """
+        Check if the given user has already voted in this election.
+        Assumes there is a Vote model with election & voter fields.
+        """
+        from votes.models import Vote  # Local import to avoid circular dependency
+        return Vote.objects.filter(election=self, voter=user).exists()
