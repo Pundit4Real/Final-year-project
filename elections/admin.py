@@ -2,8 +2,11 @@ from django.contrib import admin, messages
 from django import forms
 from django.utils.html import format_html
 from django.utils.timezone import now
+from django.conf import settings
 
-from elections.models import Election, Position, Candidate
+from elections.models.elections import Election
+from elections.models.positions import Position
+from elections.models.candidates import Candidate
 from blockchain.helpers import add_position, add_candidate
 
 
@@ -21,7 +24,9 @@ class CandidateAdminForm(forms.ModelForm):
         if student and student.current_level == 4:
             raise forms.ValidationError("Students in Level 400 are not eligible to contest.")
         if position and not position.is_user_eligible(student):
-            raise forms.ValidationError("This student does not belong to an eligible department for this position.")
+            raise forms.ValidationError(
+                "This student does not belong to an eligible department for this position."
+            )
         return cleaned_data
 
 
@@ -35,6 +40,7 @@ class PositionAdmin(admin.ModelAdmin):
     search_fields = ('title', 'election__title', 'code')
     list_filter = ('election', 'eligible_departments', 'is_synced')
     actions = ['sync_to_blockchain']
+    readonly_fields = ['code']
 
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
@@ -87,20 +93,27 @@ class PositionAdmin(admin.ModelAdmin):
 @admin.register(Candidate)
 class CandidateAdmin(admin.ModelAdmin):
     form = CandidateAdminForm
-    list_display = ('code', 'student', 'position', 'get_election', 'sync_status', 'last_synced_at')
+    list_display = ('code', 'student', 'position', 'get_election', 'sync_status', 'last_synced', 'image_preview')
     search_fields = ('student__full_name', 'position__title', 'code')
     list_filter = ('position__election', 'student__department', 'is_synced')
     actions = ['sync_to_blockchain']
+    readonly_fields = ['code', 'image_preview']
+
+    fieldsets = (
+        (None, {
+            'fields': ('student', 'position', 'manifesto', 'campaign_keywords', 'promise', 'image', 'image_preview')
+        }),
+    )
 
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
-        exclude = {'is_synced', 'last_synced_at'}
+        exclude = {'is_synced', 'last_synced'}
         return [f for f in fields if f not in exclude]
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.is_synced:
             return [f.name for f in self.model._meta.fields]
-        return super().get_readonly_fields(request, obj)
+        return list(super().get_readonly_fields(request, obj)) + ['code', 'image_preview']
 
     def has_delete_permission(self, request, obj=None):
         if obj and obj.is_synced:
@@ -135,13 +148,36 @@ class CandidateAdmin(admin.ModelAdmin):
         messages.info(request, f"Sync complete: {success} success, {failed} failed")
     sync_to_blockchain.short_description = "🔁 Sync selected Candidates to Blockchain"
 
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:100px;"/>', obj.image.url)
+        return "-"
+    image_preview.short_description = "Image Preview"
+
+    # --- Auto-refresh code display after save ---
+    def response_add(self, request, obj, post_url_continue=None):
+        return self._refresh_with_code(request, obj, super().response_add)
+
+    def response_change(self, request, obj):
+        return self._refresh_with_code(request, obj, super().response_change)
+
+    def _refresh_with_code(self, request, obj, super_method):
+        response = super_method(request, obj)
+        if "_continue" in request.POST:
+            messages.info(request, f"Candidate Code: {obj.code}")
+        return response
+
 
 @admin.register(Election)
 class ElectionAdmin(admin.ModelAdmin):
-    list_display = ('code', 'title', 'department', 'start_date', 'end_date', 'created_at')
+    list_display = (
+        'code', 'title', 'department', 'start_date', 'end_date',
+        'status', 'is_active', 'created_at'
+    )
     search_fields = ('title', 'department__name', 'code')
     ordering = ('-start_date',)
-    list_filter = ('department', 'start_date')
+    list_filter = ('department', 'start_date', 'status')
+    readonly_fields = ('code', 'created_at')
 
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)

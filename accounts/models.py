@@ -28,7 +28,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     year_enrolled = models.IntegerField(default=datetime.now().year)
     level = models.IntegerField(choices=LEVEL_CHOICES, null=True, blank=True)
 
-    # ⬇️ Made optional (null=True, blank=True)
     department = models.ForeignKey(
         Department,
         on_delete=models.PROTECT,
@@ -58,6 +57,24 @@ class User(AbstractBaseUser, PermissionsMixin):
             return self.level
         current_year = datetime.now().year
         return min(current_year - self.year_enrolled + 1, 4)
+
+    @property
+    def role(self):
+        if self.is_superuser:
+            return "Admin"
+        elif self.is_staff:
+            return "Staff"
+        return "Student"
+
+    @property
+    def status(self):
+        current_year = datetime.now().year
+        graduated = (current_year - self.year_enrolled) > 4
+        if graduated:
+            return "Inactive"
+        if not self.is_active:
+            return "Suspended"
+        return "Active"
 
     def save(self, *args, **kwargs):
         if not self.did or not self.wallet_address or not self.private_key:

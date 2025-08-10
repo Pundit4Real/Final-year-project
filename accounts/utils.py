@@ -7,7 +7,9 @@ def generate_did():
     return acct.address, f"did:ethr:{acct.address}", acct.key.hex()
 
 def generate_code(prefix, department_name=None, scope=None, length=2):
-    from elections.models import Election, Position, Candidate
+    from elections.models.elections import Election
+    from elections.models.candidates import Candidate
+    from elections.models.positions import Position
     model_map = {
         "EL": Election,
         "POS": Position,
@@ -22,7 +24,7 @@ def generate_code(prefix, department_name=None, scope=None, length=2):
     next_id = latest_id + 1
     padded_number = str(next_id).zfill(length)
 
-    dept_part = department_name[:2].upper() if department_name else "GN"
-    scope_part = scope[:2].upper() if scope else "WD"
+    dept_part = department_name[:3].upper() if department_name else "GN"
+    scope_part = scope[:3].upper() if scope else "WD"
 
     return f"{prefix}-{scope_part}-{dept_part}-{padded_number}"

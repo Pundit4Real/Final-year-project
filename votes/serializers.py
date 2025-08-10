@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from votes.models import Vote
-from elections.models import Candidate
+from elections.models.candidates import Candidate
 from hashlib import sha256
 import logging
 

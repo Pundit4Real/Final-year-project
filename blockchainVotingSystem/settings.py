@@ -10,12 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 from datetime import timedelta
 
-import os
-from decouple import config
-import dj_database_url
+# import os
+# from decouple import config
+# import dj_database_url
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -31,7 +32,7 @@ SECRET_KEY = 'django-insecure-j9+o#-2y+ba_$wq_cf#j+qk)k6*d4&t@-^9=zi&#n44q)lfhuz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','127.0.0.1','localhost','http://localhost:3000','https://fyp-frontend01.vercel.app/']
 
 
 # Application definition
@@ -45,11 +46,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #third-party apps
+    "corsheaders",
     "drf_yasg",
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
-    "corsheaders",
+    "django_filters",
     
     # custom apps
     'accounts',
@@ -60,6 +62,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -95,12 +98,12 @@ WSGI_APPLICATION = 'blockchainVotingSystem.wsgi.application'
 
 DATABASES = {
 
-    'default': dj_database_url.config(default=config('DATABASE_URL'))
+    # 'default': dj_database_url.config(default=config('DATABASE_URL'))
 
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 
@@ -138,7 +141,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    # '/var/www/static/',
+]
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = os.path.join(BASE_DIR, "media/")
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -151,7 +161,14 @@ AUTH_USER_MODEL = 'accounts.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'blockchainVotingSystem.pagination.PageNumberPaginationNoCount',
+    'PAGE_SIZE': 10, 
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+        ],
 }
 
 SIMPLE_JWT = {
@@ -166,5 +183,14 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
+CORS_ALLOW_ALL_ORIGINS = True  # For dev only
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 INSTALLED_APPS += ['rest_framework_simplejwt.token_blacklist']

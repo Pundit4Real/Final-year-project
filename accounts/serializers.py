@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime
 from accounts.models import User,Department
+from accounts.models import User
 
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
@@ -43,3 +44,25 @@ class SignupSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     index_number = serializers.CharField()
     password = serializers.CharField(write_only=True, min_length=8)
+
+class UserListSerializer(serializers.ModelSerializer):
+    department = serializers.CharField(source='department.name', default=None)
+    current_level = serializers.SerializerMethodField()
+    role = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'index_number',
+            'full_name',
+            'email',
+            'current_level',
+            'year_enrolled',
+            'department',
+            'role',
+            'status'
+        ]
+
+    def get_current_level(self, obj):
+        return obj.current_level

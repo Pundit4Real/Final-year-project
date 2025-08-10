@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
-from elections.models import Candidate, Position, Election
+from elections.models.elections import Election
+from elections.models.candidates import Candidate
+from elections.models.positions import Position
 
 class Vote(models.Model):
     voter_did_hash = models.CharField(max_length=64)

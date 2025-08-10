@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from votes.models import Vote
-from elections.models import Election, Position, Candidate
+from elections.models.elections import Election
+from elections.models.positions import Position
 from votes.serializers import AnonymousVoteSerializer
 from django.db.models import Count
 

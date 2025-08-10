@@ -37,7 +37,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "index_number": user.index_number,
             "did": user.did,
             "access": data["access"],
-            "refresh": data["refresh"]
+            "refresh": data["refresh"],
+            "role": user.role
         })
         return data
 

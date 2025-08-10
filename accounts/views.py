@@ -1,16 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status,generics,permissions
 from rest_framework.permissions import IsAdminUser
-from django.http import JsonResponse
-from accounts.serializers import SignupSerializer
+from accounts.filters import UserFilter
+from accounts.models import User
+from accounts.serializers import SignupSerializer,UserListSerializer
 from drf_yasg.utils import swagger_auto_schema
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
 
 from django.conf import settings
-from django.core.management import call_command
-from django.http import HttpResponse
-import os
 
 # ------------------------------
 # 🔐 Admin-only Student Sign-Up
@@ -43,28 +42,33 @@ class SignupView(APIView):
                 "did": user.did,
                 "current_level": user.current_level,
                 "year_enrolled": user.year_enrolled,
-                "department": user.department.name if user.department else None
+                "department": user.department.name if user.department else None,
+                "role": user.role
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ------------------------------
-# 🛠️ One-Time Setup View (Free Plan Hack)
-# ------------------------------
-# from django.views import View  # optional alternative to APIView
+class UserListView(generics.ListAPIView):
+
+    queryset = User.objects.all()
+    serializer_class = UserListSerializer
+    permission_classes = [permissions.IsAdminUser]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
+    search_fields = ['index_number','full_name','did']
 
 
-class SetupView(APIView):
+class UserSummaryView(APIView):
+    permission_classes = [IsAdminUser]
+
     def get(self, request):
-        try:
-            file_path = os.path.join(settings.BASE_DIR, 'data.json')
-            if not os.path.exists(file_path):
-                return JsonResponse({"error": f"❌ File not found at {file_path}"}, status=404)
+        users = User.objects.all()
 
-            call_command('migrate')
-            call_command('loaddata', file_path)
+        summary = {
+            "active": sum(1 for u in users if u.status == "Active"),
+            "suspended": sum(1 for u in users if u.status == "Suspended"),
+            "inactive": sum(1 for u in users if u.status == "Inactive"),
+            "total": users.count()
+        }
 
-            return JsonResponse({"message": "✔ Migration + Data Load successful"}, status=200)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+        return Response(summary)

@@ -28,7 +28,7 @@ class UserCreationForm(forms.ModelForm):
 class UserAdmin(BaseUserAdmin):
     add_form = UserCreationForm
     model = User
-    list_display = ('index_number', 'full_name', 'email', 'department', 'current_level', 'did', 'is_staff', 'is_active')
+    list_display = ('index_number', 'full_name', 'email', 'department', 'current_level', 'did', 'status','is_staff', 'is_active')
     list_filter = ('is_staff', 'is_active', 'department')
     search_fields = ('index_number', 'full_name', 'email', 'did')
     ordering = ('index_number',)

@@ -1,5 +1,6 @@
 from .utils import contract, build_and_send_tx
-from elections.models import Position, Candidate
+from elections.models.positions import Position
+from elections.models.candidates import Candidate
 
 def add_position(position_code, title, election_code, mark_synced=True):
     receipt = build_and_send_tx(
