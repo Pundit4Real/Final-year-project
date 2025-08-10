@@ -1,4 +1,3 @@
-# blockchain/utils.py
 from web3 import Web3
 from dotenv import load_dotenv
 import os
@@ -13,20 +12,36 @@ WALLET_ADDRESS = os.getenv("WA")
 CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
 CHAIN_ID = int(os.getenv("CHAIN_ID", 137))
 
-web3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
+# Initialize web3 only if URL is provided
+web3 = Web3(Web3.HTTPProvider(ALCHEMY_URL)) if ALCHEMY_URL else None
 
-assert web3.is_connected(), "❌ Failed to connect to Polygon Mainnet via Alchemy"
+def check_connection():
+    """Check blockchain connection when needed."""
+    if not web3:
+        raise EnvironmentError("❌ Alchemy URL not configured.")
+    if not web3.is_connected():
+        raise ConnectionError("❌ Failed to connect to Polygon Mainnet via Alchemy")
+    return True
 
-# Load ABI
-with open("blockchain/abi.json") as f:
-    abi = json.load(f)
+# Load ABI safely
+try:
+    with open(os.path.join(os.path.dirname(__file__), "abi.json")) as f:
+        abi = json.load(f)
+except FileNotFoundError:
+    abi = None
+    print("⚠️ ABI file not found — contract functions may not work until it's added.")
 
 def contract():
+    check_connection()
+    if not abi:
+        raise FileNotFoundError("ABI file not loaded")
     return web3.eth.contract(address=CONTRACT_ADDRESS, abi=abi)
 
 def build_and_send_tx(fn, *args):
+    check_connection()
     acct = web3.eth.account.from_key(PRIVATE_KEY)
-    assert acct.address.lower() == WALLET_ADDRESS.lower(), "❗ Wallet address mismatch"
+    if acct.address.lower() != WALLET_ADDRESS.lower():
+        raise ValueError("❗ Wallet address mismatch")
 
     nonce = web3.eth.get_transaction_count(acct.address, 'pending')
 
@@ -38,7 +53,7 @@ def build_and_send_tx(fn, *args):
         raise Exception("Smart contract call may revert. Check arguments or contract logic.")
 
     gas_price = int(web3.eth.gas_price * 1.4)
-    gas_limit = 300000  # You can adjust this if your contract's functions require more.
+    gas_limit = 300000  # Adjust if contract needs more gas
 
     tx = fn(*args).build_transaction({
         'from': acct.address,
@@ -62,4 +77,5 @@ def build_and_send_tx(fn, *args):
         raise Exception("Transaction took too long to be mined.")
 
 def generate_receipt_hash(did: str) -> bytes:
+    check_connection()
     return web3.keccak(text=did)
