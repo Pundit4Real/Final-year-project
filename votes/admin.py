@@ -4,13 +4,14 @@ from votes.models import Vote
 @admin.register(Vote)
 class VoteAdmin(admin.ModelAdmin):
     list_display = (
-        'receipt', 'tx_hash', 
-        'get_election_code', 'get_position_code', 'get_candidate_code', 
+        'receipt', 'tx_hash',
+        'is_synced',
+        'get_election_code', 'get_position_code', 'get_candidate_code',
         'timestamp'
     )
     search_fields = ('receipt', 'tx_hash', 'position__code', 'candidate__code', 'election__code')
-    list_filter = ('position__election__title', 'position__title', 'timestamp')
-    readonly_fields = ('voter_did_hash', 'receipt', 'tx_hash', 'timestamp', 'candidate', 'position', 'election')
+    list_filter = ('position__election__title', 'position__title', 'timestamp', 'is_synced')
+    readonly_fields = ('voter_did_hash', 'receipt', 'tx_hash', 'timestamp', 'candidate', 'position', 'election', 'is_synced')
 
     def has_add_permission(self, request):
         return False  # Disable add

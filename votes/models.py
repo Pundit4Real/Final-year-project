@@ -12,6 +12,7 @@ class Vote(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     receipt = models.CharField(max_length=128, unique=True, editable=False)
     tx_hash = models.CharField(max_length=66, blank=True, null=True)
+    is_synced = models.BooleanField(default=False)  # Track if vote is synced to blockchain
 
     class Meta:
         unique_together = ('voter_did_hash', 'position')

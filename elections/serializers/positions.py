@@ -15,8 +15,8 @@ class PositionSerializer(serializers.ModelSerializer):
 
 class PositionNestedSerializer(serializers.ModelSerializer):
     candidates = CandidateNestedSerializer(many=True, read_only=True)
-
+    code = serializers.CharField(read_only=True)
     class Meta:
         model = Position
-        fields = ['title', 'eligible_levels', 'candidates']
+        fields = ['code','title', 'eligible_levels', 'candidates']
         read_only_fields = ['code'] 

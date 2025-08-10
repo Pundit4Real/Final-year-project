@@ -110,18 +110,57 @@ class VoteResultsView(APIView):
         except (Election.DoesNotExist, Position.DoesNotExist):
             return Response({"error": "Election or Position not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        result_data = (
+        # Total votes cast in the election
+        total_votes_cast = Vote.objects.filter(election=election).count()
+
+        # Total votes synced to blockchain
+        total_votes_synced = Vote.objects.filter(election=election, is_synced=True).count()
+        percent_synced = (total_votes_synced / total_votes_cast * 100) if total_votes_cast else 0
+
+        # Total votes cast for the position across all elections
+        total_votes_position = Vote.objects.filter(position=position).count()
+
+        # Votes for each candidate in the position in this election
+        votes_qs = (
             Vote.objects.filter(election=election, position=position)
             .values("candidate__student__full_name", "candidate__code")
             .annotate(total_votes=Count("id"))
             .order_by("-total_votes")
         )
 
+        results = []
+        max_votes = 0
+        winners = []
+
+        for v in votes_qs:
+            vote_count = v['total_votes']
+            percent = (vote_count / total_votes_position * 100) if total_votes_position else 0
+            results.append({
+                "candidate_full_name": v["candidate__student__full_name"],
+                "candidate_code": v["candidate__code"],
+                "total_votes": vote_count,
+                "percentage": round(percent, 2),
+            })
+            if vote_count > max_votes:
+                max_votes = vote_count
+                winners = [v["candidate__code"]]
+            elif vote_count == max_votes:
+                winners.append(v["candidate__code"])
+
+        # Mark win status per candidate
+        for res in results:
+            res['is_winner'] = res['candidate_code'] in winners
+
         return Response({
             "election": election.title,
             "position": position.title,
-            "results": result_data
+            "total_votes_cast": total_votes_cast,
+            "total_votes_synced": total_votes_synced,
+            "percent_synced": round(percent_synced, 2),
+            "total_votes_position": total_votes_position,
+            "results": results,
         })
+
 
 class BlockchainResultsView(APIView):
     permission_classes = [permissions.IsAuthenticated]

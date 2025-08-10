@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from datetime import datetime
-from accounts.models import User,Department
-from accounts.models import User
+from accounts.models import User, Department
 
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
@@ -44,6 +43,7 @@ class SignupSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     index_number = serializers.CharField()
     password = serializers.CharField(write_only=True, min_length=8)
+
 
 class UserListSerializer(serializers.ModelSerializer):
     department = serializers.CharField(source='department.name', default=None)

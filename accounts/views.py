@@ -39,6 +39,7 @@ class SignupView(APIView):
             return Response({
                 "message": "Student account created successfully.",
                 "index_number": user.index_number,
+                "full_name":user.full_name,
                 "did": user.did,
                 "current_level": user.current_level,
                 "year_enrolled": user.year_enrolled,

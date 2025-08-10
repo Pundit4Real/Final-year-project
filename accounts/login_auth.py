@@ -1,10 +1,12 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework import serializers
+from rest_framework import serializers,status
 from accounts.models import User
 from accounts.serializers import LoginSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from rest_framework.response import Response
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def __init__(self, *args, **kwargs):
@@ -35,13 +37,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data.update({
             "message": "Login successful",
             "index_number": user.index_number,
+            "full_name":user.full_name,
             "did": user.did,
             "access": data["access"],
             "refresh": data["refresh"],
             "role": user.role
         })
         return data
-
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -59,4 +61,26 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         responses={200: "JWT token pair with DID and index number"}
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.user  # User instance after validation
+
+        # Blacklist all previous outstanding tokens for this user
+        tokens = OutstandingToken.objects.filter(user=user)
+        for token in tokens:
+            try:
+                BlacklistedToken.objects.get_or_create(token=token)
+            except Exception:
+                pass  # optionally log or ignore if already blacklisted
+
+        data = serializer.validated_data
+        data.update({
+            "message": "Login successful",
+            "index_number": user.index_number,
+            "full_name": user.full_name,
+            "did": user.did,
+            "role": user.role
+        })
+
+        return Response(data, status=status.HTTP_200_OK)
