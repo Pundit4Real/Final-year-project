@@ -6,12 +6,23 @@ class VoteAdmin(admin.ModelAdmin):
     list_display = (
         'receipt', 'tx_hash',
         'is_synced',
+        'status', 'block_number', 'block_confirmations', 'block_timestamp',
         'get_election_code', 'get_position_code', 'get_candidate_code',
         'timestamp'
     )
-    search_fields = ('receipt', 'tx_hash', 'position__code', 'candidate__code', 'election__code')
-    list_filter = ('position__election__title', 'position__title', 'timestamp', 'is_synced')
-    readonly_fields = ('voter_did_hash', 'receipt', 'tx_hash', 'timestamp', 'candidate', 'position', 'election', 'is_synced')
+    search_fields = (
+        'receipt', 'tx_hash',
+        'position__code', 'candidate__code', 'election__code'
+    )
+    list_filter = (
+        'position__election__title', 'position__title', 'timestamp',
+        'is_synced', 'status'
+    )
+    readonly_fields = (
+        'voter_did_hash', 'receipt', 'tx_hash', 'timestamp',
+        'candidate', 'position', 'election', 'is_synced',
+        'status', 'block_number', 'block_confirmations', 'block_timestamp'
+    )
 
     def has_add_permission(self, request):
         return False  # Disable add

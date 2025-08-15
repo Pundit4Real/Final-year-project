@@ -9,7 +9,11 @@ from elections.models.elections import Election
 from elections.models.positions import Position
 from votes.serializers import AnonymousVoteSerializer
 from django.db.models import Count
+from web3.exceptions import ContractLogicError
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 class CastVoteView(generics.CreateAPIView):
     serializer_class = AnonymousVoteSerializer
@@ -45,18 +49,43 @@ class CastVoteView(generics.CreateAPIView):
 
         serializer = self.get_serializer(data=data, context={"request": request})
         if serializer.is_valid():
-            vote_instance = serializer.save()
-            return Response({
-                "message": "Vote cast successfully.",
-                "receipt": vote_instance.receipt,
-                "tx_mined_hash": vote_instance.tx_hash,
-                "timestamp": vote_instance.timestamp,
-                "position": vote_instance.position.title,
-                "election": vote_instance.election.title,
-            }, status=status.HTTP_201_CREATED)
+            try:
+                vote_instance = serializer.save()
+                blockchain_info = getattr(vote_instance, "blockchain_info", {})
+
+                return Response({
+                    "message": "Vote cast successfully.",
+                    "receipt": vote_instance.receipt,
+                    "tx_hash": vote_instance.tx_hash,
+                    "status": blockchain_info.get("status", "Unknown"),
+                    "block_number": blockchain_info.get("block_number"),
+                    "block_confirmations": blockchain_info.get("block_confirmations"),
+                    "block_timestamp": blockchain_info.get("block_timestamp"),
+                    "position": vote_instance.position.title,
+                    "election": vote_instance.election.title,
+                }, status=status.HTTP_201_CREATED)
+
+            except ContractLogicError as e:
+                # Blockchain rejected the transaction
+                if "Receipt already used" in str(e):
+                    # Inform front-end that the user can retry
+                    return Response({
+                        "error": "Previous receipt was already used. Please retry to generate a fresh receipt."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                logger.exception("Blockchain contract logic error")
+                return Response({
+                    "error": "Blockchain rejected the vote due to contract logic error."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                # Catch all other unexpected errors
+                logger.exception(f"Unexpected error during vote casting: {e}")
+                return Response({
+                    "error": "An unexpected error occurred during vote casting. Please retry."
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 class VoteVerificationView(APIView):
     @swagger_auto_schema(
         operation_summary="Verify a vote",

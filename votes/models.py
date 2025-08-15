@@ -4,6 +4,7 @@ from elections.models.elections import Election
 from elections.models.candidates import Candidate
 from elections.models.positions import Position
 
+
 class Vote(models.Model):
     voter_did_hash = models.CharField(max_length=64)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='votes')
@@ -12,7 +13,13 @@ class Vote(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     receipt = models.CharField(max_length=128, unique=True, editable=False)
     tx_hash = models.CharField(max_length=66, blank=True, null=True)
-    is_synced = models.BooleanField(default=False)  # Track if vote is synced to blockchain
+    is_synced = models.BooleanField(default=False)
+
+    # Blockchain info
+    block_number = models.PositiveBigIntegerField(blank=True, null=True)
+    block_confirmations = models.PositiveIntegerField(blank=True, null=True)
+    block_timestamp = models.DateTimeField(blank=True, null=True)
+    status = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
         unique_together = ('voter_did_hash', 'position')

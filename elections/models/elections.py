@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from accounts.models import Department
+from accounts.models import Department, School
 from accounts.utils import generate_code
 
 
@@ -13,19 +13,20 @@ class Election(models.Model):
         SUSPENDED = "suspended", "Suspended"
         CANCELLED = "cancelled", "Cancelled"
 
-    code = models.CharField(max_length=10, unique=True, blank=True)
+    code = models.CharField(max_length=20, unique=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
-
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.DRAFT
+    school = models.ForeignKey(School,on_delete=models.SET_NULL,null=True,blank=True,
+                               related_name="elections"
     )
-
+    department = models.ForeignKey(Department,on_delete=models.SET_NULL,null=True,blank=True,
+                                   related_name="elections"
+    )
+    status = models.CharField(max_length=20,choices=Status.choices,default=Status.DRAFT)
+    is_synced = models.BooleanField(default=False)
+    last_synced = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -35,17 +36,33 @@ class Election(models.Model):
 
     def __str__(self):
         return self.title
-    
+
     def save(self, *args, **kwargs):
         # Auto-generate code if missing
         if not self.code:
-            scope = "Dept" if self.department else "Uni"
-            dept_name = self.department.name if self.department else None
-            self.code = generate_code("EL", department_name=dept_name, scope=scope)
+            school_name = None
+            department_name = None
+            scope = None
 
-        # Automatically determine status based on dates
+            if self.department:
+                scope = "Dept"
+                department_name = self.department.name
+            elif self.school:
+                scope = "School"
+                school_name = self.school.name
+            else:
+                scope = "Uni"
+
+            self.code = generate_code(
+                "EL",
+                department_name=department_name,
+                school_name=school_name,
+                scope=scope
+            )
+
+        # Set status automatically if not suspended or cancelled
         now = timezone.now()
-        if self.status not in [self.Status.SUSPENDED, self.Status.CANCELLED]:  
+        if self.status not in [self.Status.SUSPENDED, self.Status.CANCELLED]:
             if now < self.start_date:
                 self.status = self.Status.UPCOMING
             elif self.start_date <= now <= self.end_date:
@@ -72,9 +89,5 @@ class Election(models.Model):
         return self.get_status_display()
 
     def has_voted(self, user):
-        """
-        Check if the given user has already voted in this election.
-        Assumes there is a Vote model with election & voter fields.
-        """
-        from votes.models import Vote  # Local import to avoid circular dependency
+        from votes.models import Vote
         return Vote.objects.filter(election=self, voter=user).exists()

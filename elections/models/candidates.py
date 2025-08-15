@@ -5,7 +5,7 @@ from .positions import Position
 from elections.directories import candidate_directory
 
 class Candidate(models.Model):
-    code = models.CharField(max_length=12, unique=True, blank=True)
+    code = models.CharField(max_length=20, unique=True, blank=True)
     position = models.ForeignKey(Position, related_name='candidates', on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     manifesto = models.TextField(blank=True)
@@ -17,6 +17,7 @@ class Candidate(models.Model):
 
     is_synced = models.BooleanField(default=False)
     last_synced = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('position', 'student')
@@ -29,7 +30,28 @@ class Candidate(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            dept_name = self.student.department.name if self.student and self.student.department else None
-            scope = "Dept" if self.position and self.position.election and self.position.election.department else "Uni"
-            self.code = generate_code("CND", department_name=dept_name, scope=scope, length=4)
+            school_name = None
+            department_name = None
+            scope = None
+
+            if self.position and self.position.election:
+                election = self.position.election
+                if election.department:
+                    department_name = election.department.name
+                    scope = "Dept"
+                elif election.school:
+                    school_name = election.school.name
+                    scope = "School"
+                else:
+                    scope = "Uni"
+            else:
+                scope = "Uni"
+
+            self.code = generate_code(
+                "CND",
+                department_name=department_name,
+                school_name=school_name,
+                scope=scope,
+                seq_length=3  # You can adjust this if needed
+            )
         super().save(*args, **kwargs)

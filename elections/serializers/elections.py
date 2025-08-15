@@ -6,6 +6,7 @@ from .positions import PositionNestedSerializer
 class ElectionSerializer(serializers.ModelSerializer):
     has_voted = serializers.SerializerMethodField()
     department_name = serializers.CharField(source='department.name', read_only=True)
+    school_name = serializers.CharField(source='school.name', read_only=True)
     total_candidates = serializers.IntegerField(read_only=True)
     total_positions = serializers.IntegerField(read_only=True)
     # Make status readable but conditionally writable
@@ -18,7 +19,7 @@ class ElectionSerializer(serializers.ModelSerializer):
         model = Election
         fields = [
             'code', 'title', 'description', 'start_date', 'end_date',
-            'created_at', 'has_voted', 'department_name',
+            'created_at', 'has_voted', 'department_name', 'school_name',
             'total_candidates', 'total_positions', 'status'
         ]
 
@@ -50,6 +51,7 @@ class ElectionDetailSerializer(serializers.ModelSerializer):
     total_candidates = serializers.IntegerField(read_only=True)
     total_positions = serializers.IntegerField(read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
+    school_name = serializers.CharField(source='school.name', read_only=True)
     status = serializers.ChoiceField(
         choices=Election.Status.choices,
         required=False
@@ -61,7 +63,7 @@ class ElectionDetailSerializer(serializers.ModelSerializer):
             'code', 'title', 'description', 'start_date', 'end_date',
             'positions', 'is_active', 'has_ended',
             'has_voted', 'total_candidates', 'total_positions',
-            'department_name', 'status'
+            'department_name', 'school_name', 'status'
         ]
 
     def get_is_active(self, obj):

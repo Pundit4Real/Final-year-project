@@ -27,15 +27,22 @@ class BaseElectionView:
             voter_did_hash=voter_did_hash
         )
 
+        department = getattr(user, "department", None)
+        school = getattr(department, "school", None) if department else None
+
         return (
             Election.objects
-            .filter(Q(department__isnull=True) | Q(department=user.department))
+            .filter(
+                Q(department__isnull=True, school__isnull=True) |
+                Q(department=department) |
+                Q(school=school)
+            )
             .annotate(
                 has_voted=Exists(vote_subquery),
                 total_candidates=Count('positions__candidates', distinct=True),
                 total_positions=Count('positions', distinct=True)
             )
-            .select_related('department')
+            .select_related('department', 'school')
         )
 
 
@@ -49,8 +56,12 @@ class ElectionSummaryView(generics.GenericAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        department = getattr(user, "department", None)
+        school = getattr(department, "school", None) if department else None
         return Election.objects.filter(
-            Q(department__isnull=True) | Q(department=user.department)
+            Q(department__isnull=True, school__isnull=True) |
+            Q(department=department) |
+            Q(school=school)
         )
 
     def get(self, request, *args, **kwargs):

@@ -3,36 +3,55 @@ pragma solidity ^0.8.30;
 
 contract Voting {
     struct Candidate {
-        string code;
+        bytes32 code;
         string name;
         uint256 voteCount;
     }
 
     struct Position {
-        string code;
+        bytes32 code;
         string title;
-        string electionCode;
+        bytes32 electionCode;
         bool exists;
-        string[] candidateCodes;
-        mapping(string => Candidate) candidates;
+        bytes32[] candidateCodes;
+        mapping(bytes32 => Candidate) candidates;
     }
 
-    mapping(string => Position) private positions;
+    mapping(bytes32 => Position) private positions;
     mapping(bytes32 => bool) public hasVoted;
+    mapping(bytes32 => bool) private elections;
 
     event VoteCast(
-        string indexed electionCode,
-        string indexed positionCode,
-        string candidateCode,
+        bytes32 indexed electionCode,
+        bytes32 indexed positionCode,
+        bytes32 indexed candidateCode,
         uint256 timestamp,
         bytes32 receiptHash
     );
 
+    modifier validBytes32(bytes32 value) {
+        require(value != bytes32(0), "Invalid empty code");
+        _;
+    }
+
+    function addElection(bytes32 electionCode)
+        external
+        validBytes32(electionCode)
+    {
+        require(!elections[electionCode], "Election already exists");
+        elections[electionCode] = true;
+    }
+
     function addPosition(
-        string memory positionCode,
+        bytes32 positionCode,
         string memory title,
-        string memory electionCode
-    ) external {
+        bytes32 electionCode
+    )
+        external
+        validBytes32(positionCode)
+        validBytes32(electionCode)
+    {
+        require(elections[electionCode], "Election does not exist");
         require(!positions[positionCode].exists, "Position already exists");
 
         Position storage newPosition = positions[positionCode];
@@ -43,29 +62,38 @@ contract Voting {
     }
 
     function addCandidate(
-        string memory positionCode,
-        string memory candidateCode,
+        bytes32 positionCode,
+        bytes32 candidateCode,
         string memory name
-    ) external {
+    )
+        external
+        validBytes32(positionCode)
+        validBytes32(candidateCode)
+    {
         require(positions[positionCode].exists, "Position does not exist");
 
         Position storage p = positions[positionCode];
-        require(bytes(p.candidates[candidateCode].code).length == 0, "Candidate already exists");
+        require(p.candidates[candidateCode].code == bytes32(0), "Candidate already exists");
 
         p.candidates[candidateCode] = Candidate(candidateCode, name, 0);
         p.candidateCodes.push(candidateCode);
     }
 
     function vote(
-        string memory positionCode,
-        string memory candidateCode,
+        bytes32 positionCode,
+        bytes32 candidateCode,
         bytes32 receiptHash
-    ) external {
+    )
+        external
+        validBytes32(positionCode)
+        validBytes32(candidateCode)
+        validBytes32(receiptHash)
+    {
         require(positions[positionCode].exists, "Invalid position");
         require(!hasVoted[receiptHash], "Receipt already used");
 
         Position storage p = positions[positionCode];
-        require(bytes(p.candidates[candidateCode].code).length > 0, "Invalid candidate");
+        require(p.candidates[candidateCode].code != bytes32(0), "Invalid candidate");
 
         p.candidates[candidateCode].voteCount += 1;
         hasVoted[receiptHash] = true;
@@ -73,25 +101,37 @@ contract Voting {
         emit VoteCast(p.electionCode, positionCode, candidateCode, block.timestamp, receiptHash);
     }
 
-    function getResults(
-        string memory positionCode
-    ) external view returns (string[] memory candidateCodes, uint256[] memory voteCounts) {
+    function getResults(bytes32 positionCode)
+        external
+        view
+        validBytes32(positionCode)
+        returns (bytes32[] memory candidateCodes, uint256[] memory voteCounts)
+    {
         require(positions[positionCode].exists, "Invalid position");
 
         Position storage p = positions[positionCode];
         uint256 len = p.candidateCodes.length;
 
-        candidateCodes = new string[](len);
+        candidateCodes = new bytes32[](len);
         voteCounts = new uint256[](len);
 
         for (uint256 i = 0; i < len; i++) {
-            string memory code = p.candidateCodes[i];
+            bytes32 code = p.candidateCodes[i];
             candidateCodes[i] = code;
             voteCounts[i] = p.candidates[code].voteCount;
         }
     }
 
-    function positionExists(string memory positionCode) external view returns (bool) {
+    function positionExists(bytes32 positionCode) external view returns (bool) {
         return positions[positionCode].exists;
+    }
+
+    function electionExists(bytes32 electionCode) external view returns (bool) {
+        return elections[electionCode];
+    }
+
+    function candidateExists(bytes32 positionCode, bytes32 candidateCode) external view returns (bool) {
+        if (!positions[positionCode].exists) return false;
+        return positions[positionCode].candidates[candidateCode].code != bytes32(0);
     }
 }

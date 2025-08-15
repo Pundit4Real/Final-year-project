@@ -1,93 +1,24 @@
 [
 	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "positionCode",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "candidateCode",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "name",
-				"type": "string"
-			}
-		],
-		"name": "addCandidate",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "positionCode",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "title",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "electionCode",
-				"type": "string"
-			}
-		],
-		"name": "addPosition",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "positionCode",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "candidateCode",
-				"type": "string"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "receiptHash",
-				"type": "bytes32"
-			}
-		],
-		"name": "vote",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"anonymous": false,
 		"inputs": [
 			{
 				"indexed": true,
-				"internalType": "string",
+				"internalType": "bytes32",
 				"name": "electionCode",
-				"type": "string"
+				"type": "bytes32"
 			},
 			{
 				"indexed": true,
-				"internalType": "string",
+				"internalType": "bytes32",
 				"name": "positionCode",
-				"type": "string"
+				"type": "bytes32"
 			},
 			{
-				"indexed": false,
-				"internalType": "string",
+				"indexed": true,
+				"internalType": "bytes32",
 				"name": "candidateCode",
-				"type": "string"
+				"type": "bytes32"
 			},
 			{
 				"indexed": false,
@@ -108,17 +39,119 @@
 	{
 		"inputs": [
 			{
-				"internalType": "string",
+				"internalType": "bytes32",
 				"name": "positionCode",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "candidateCode",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "string",
+				"name": "name",
 				"type": "string"
+			}
+		],
+		"name": "addCandidate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "electionCode",
+				"type": "bytes32"
+			}
+		],
+		"name": "addElection",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "positionCode",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "string",
+				"name": "title",
+				"type": "string"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "electionCode",
+				"type": "bytes32"
+			}
+		],
+		"name": "addPosition",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "positionCode",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "candidateCode",
+				"type": "bytes32"
+			}
+		],
+		"name": "candidateExists",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "electionCode",
+				"type": "bytes32"
+			}
+		],
+		"name": "electionExists",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "positionCode",
+				"type": "bytes32"
 			}
 		],
 		"name": "getResults",
 		"outputs": [
 			{
-				"internalType": "string[]",
+				"internalType": "bytes32[]",
 				"name": "candidateCodes",
-				"type": "string[]"
+				"type": "bytes32[]"
 			},
 			{
 				"internalType": "uint256[]",
@@ -151,9 +184,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "string",
+				"internalType": "bytes32",
 				"name": "positionCode",
-				"type": "string"
+				"type": "bytes32"
 			}
 		],
 		"name": "positionExists",
@@ -165,6 +198,29 @@
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "positionCode",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "candidateCode",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "receiptHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "vote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]

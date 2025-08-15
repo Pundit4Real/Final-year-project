@@ -56,6 +56,7 @@ class CandidateSerializer(serializers.ModelSerializer):
 
 class CandidateNestedSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
+    image = serializers.SerializerMethodField()  # Add this field
 
     class Meta:
         model = Candidate

@@ -11,15 +11,30 @@ LEVEL_CHOICES = (
     (4, 'Level 400'),
 )
 
+class School(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+
+    class Meta:
+        verbose_name = "School"
+        verbose_name_plural = "Schools"
+
+    def __str__(self):
+        return self.name
+
+
 class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    school = models.ForeignKey(School,on_delete=models.CASCADE,null=True,related_name="departments")
 
     class Meta:
         verbose_name = "Department"
         verbose_name_plural = "Departments"
 
     def __str__(self):
+        if self.school:
+            return f"{self.name} ({self.school.name})"
         return self.name
+
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -28,13 +43,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     year_enrolled = models.IntegerField(default=datetime.now().year)
     level = models.IntegerField(choices=LEVEL_CHOICES, null=True, blank=True)
 
-    department = models.ForeignKey(
-        Department,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True
+    department = models.ForeignKey(Department,on_delete=models.PROTECT,null=True,blank=True
     )
-
     email = models.EmailField(unique=True)
     did = models.CharField(max_length=100, unique=True, blank=True)
     wallet_address = models.CharField(max_length=42, unique=True, blank=True)
@@ -83,3 +93,5 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.did = did
             self.private_key = private_key
         super().save(*args, **kwargs)
+
+

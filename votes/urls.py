@@ -6,5 +6,4 @@ urlpatterns = [
     path("verify/", VoteVerificationView.as_view(), name="verify-vote"),
     path("results/", VoteResultsView.as_view(), name="vote-results"),
     path("results/<str:position_code>/", BlockchainResultsView.as_view())
-
 ]

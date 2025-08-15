@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
-from accounts.models import User, Department
+from accounts.models import User, Department,School
 
 class UserCreationForm(forms.ModelForm):
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
@@ -52,5 +52,9 @@ class UserAdmin(BaseUserAdmin):
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ('name','id')
 
+class SchoolAdmin(admin.ModelAdmin):
+    list_display = ('name','id')
+
 admin.site.register(User, UserAdmin)
 admin.site.register(Department, DepartmentAdmin)
+admin.site.register(School,SchoolAdmin)
