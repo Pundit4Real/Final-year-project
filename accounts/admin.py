@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
-from accounts.models import User, Department,School
+from accounts.models import User, Department, School
 
 class UserCreationForm(forms.ModelForm):
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
@@ -9,7 +9,10 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('index_number', 'full_name', 'email', 'year_enrolled', 'level', 'department')
+        fields = (
+            'index_number', 'full_name', 'email', 'year_enrolled', 'level', 
+            'department', 'gender'
+        )
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -25,11 +28,15 @@ class UserCreationForm(forms.ModelForm):
             user.save()
         return user
 
+
 class UserAdmin(BaseUserAdmin):
     add_form = UserCreationForm
     model = User
-    list_display = ('index_number', 'full_name', 'email', 'department', 'current_level', 'did', 'status','is_staff', 'is_active')
-    list_filter = ('is_staff', 'is_active', 'department')
+    list_display = (
+        'index_number', 'full_name', 'email', 'gender', 'department', 
+        'current_level', 'did', 'status', 'is_staff', 'is_active'
+    )
+    list_filter = ('is_staff', 'is_active', 'department', 'gender')
     search_fields = ('index_number', 'full_name', 'email', 'did')
     ordering = ('index_number',)
 
@@ -37,24 +44,39 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('index_number', 'email', 'password')}),
-        ('Personal Info', {'fields': ('full_name', 'year_enrolled', 'level', 'department')}),
+        ('Personal Info', {
+            'fields': (
+                'full_name', 'gender', 'year_enrolled', 'level', 'department'
+            )
+        }),
         ('Blockchain Info', {'fields': ('did', 'wallet_address', 'private_key')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Permissions', {
+            'fields': (
+                'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'
+            )
+        }),
     )
 
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('index_number', 'full_name', 'email', 'year_enrolled', 'level', 'department', 'password1', 'password2')}
-        ),
+            'fields': (
+                'index_number', 'full_name', 'gender', 'email', 
+                'year_enrolled', 'level', 'department', 
+                'password1', 'password2'
+            )
+        }),
     )
 
+
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ('name','id')
+    list_display = ('name', 'id')
+
 
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ('name','id')
+    list_display = ('name', 'id')
+
 
 admin.site.register(User, UserAdmin)
 admin.site.register(Department, DepartmentAdmin)
-admin.site.register(School,SchoolAdmin)
+admin.site.register(School, SchoolAdmin)

@@ -55,6 +55,5 @@ class CandidateAdminListView(CandidateBaseView, generics.ListAPIView):
     def get_queryset(self):
         return Candidate.objects.select_related(
             'student', 'position'
-        ).order_by(
-            'position__title', 'student__full_name'
-        )
+        ).order_by('-created_at')
+

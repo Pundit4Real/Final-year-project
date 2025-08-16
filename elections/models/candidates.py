@@ -4,13 +4,12 @@ from accounts.utils import generate_code
 from .positions import Position
 from elections.directories import candidate_directory
 
+
 class Candidate(models.Model):
     code = models.CharField(max_length=20, unique=True, blank=True)
     position = models.ForeignKey(Position, related_name='candidates', on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     manifesto = models.TextField(blank=True)
-
-    # New fields
     image = models.ImageField(upload_to=candidate_directory, null=True, blank=True)
     campaign_keywords = models.CharField(max_length=255, blank=True, help_text="Comma-separated keywords for campaign")
     promise = models.TextField(blank=True, help_text="Main campaign promise or slogan")
@@ -52,6 +51,6 @@ class Candidate(models.Model):
                 department_name=department_name,
                 school_name=school_name,
                 scope=scope,
-                seq_length=3  # You can adjust this if needed
+                seq_length=3
             )
         super().save(*args, **kwargs)

@@ -1,8 +1,12 @@
+# blockchain/utils.py
+
 import os
 import json
+import binascii
 from web3 import Web3
 from web3.exceptions import TimeExhausted
 from dotenv import load_dotenv
+from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware  # ✅ import here
 
 from blockchain.web3_config import web3, check_connection
 from elections.models.positions import Position
@@ -15,6 +19,17 @@ PRIVATE_KEY = os.getenv("PK")
 WALLET_ADDRESS = os.getenv("WA")
 CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
 CHAIN_ID = int(os.getenv("CHAIN_ID", 137))
+
+# ---------------------- Inject POA Middleware globally ----------------------
+MW_NAME = "ExtraDataToPOAMiddleware"
+existing_mws = [mw.__class__.__name__ for mw in web3.middleware_onion]
+
+if MW_NAME not in existing_mws:
+    web3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0, name=MW_NAME)
+else:
+    idx = existing_mws.index(MW_NAME)
+    web3.middleware_onion.replace(idx, ExtraDataToPOAMiddleware(), name=MW_NAME)
+# ------------------------------------------------------------------------------
 
 # ---------------------- Load ABI ----------------------
 ABI_PATH = os.path.join(os.path.dirname(__file__), "abi.json")
@@ -35,14 +50,11 @@ def contract():
 
 
 # ---------------------- Bytes32 Helpers ----------------------
-import binascii
-
 def to_bytes32(val):
     """Convert string/hex/bytes to bytes32, auto-detecting hex strings."""
     if val is None:
         raise ValueError("Cannot convert None to bytes32")
 
-    # Already bytes
     if isinstance(val, bytes):
         if len(val) > 32:
             raise ValueError(f"Value too long for bytes32: {val!r} ({len(val)} bytes)")
@@ -50,8 +62,6 @@ def to_bytes32(val):
 
     if isinstance(val, str):
         s = val.strip()
-
-        # Try interpreting as hex
         hex_candidate = s[2:] if s.startswith("0x") else s
         try:
             raw_bytes = binascii.unhexlify(hex_candidate)
@@ -60,13 +70,11 @@ def to_bytes32(val):
             else:
                 raise ValueError(f"Value too long for bytes32 after hex decoding: {val!r} ({len(raw_bytes)} bytes)")
         except binascii.Error:
-            # Not hex — treat as plain text
             encoded = s.encode("utf-8")
             if len(encoded) > 32:
                 raise ValueError(f"Value too long for bytes32: {val!r} ({len(encoded)} bytes)")
             return encoded.ljust(32, b"\0")
 
-    # Fallback for other types
     s = str(val)
     encoded = s.encode("utf-8")
     if len(encoded) > 32:
@@ -74,23 +82,15 @@ def to_bytes32(val):
     return encoded.ljust(32, b"\0")
 
 
-
 def from_bytes32(value):
     return value.rstrip(b'\0').decode('utf-8')
 
 
-
 # ---------------------- Hash Helpers ----------------------
 def generate_receipt_hash(did: str, as_hex: bool = False):
-    """
-    Generate a keccak256 hash for the voter's DID.
-    Ensures blockchain connection before hashing.
-    """
     check_connection()
-
     if not did or not isinstance(did, str):
         raise ValueError("DID must be a non-empty string.")
-
     hash_bytes = Web3.keccak(text=did)
     return hash_bytes.hex() if as_hex else hash_bytes
 

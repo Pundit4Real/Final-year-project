@@ -11,6 +11,11 @@ LEVEL_CHOICES = (
     (4, 'Level 400'),
 )
 
+GENDER_CHOICES = (
+    ('M', 'Male'),
+    ('F', 'Female'),
+)
+
 class School(models.Model):
     name = models.CharField(max_length=255, unique=True)
 
@@ -24,7 +29,7 @@ class School(models.Model):
 
 class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    school = models.ForeignKey(School,on_delete=models.CASCADE,null=True,related_name="departments")
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, related_name="departments")
 
     class Meta:
         verbose_name = "Department"
@@ -36,15 +41,14 @@ class Department(models.Model):
         return self.name
 
 
-
 class User(AbstractBaseUser, PermissionsMixin):
     index_number = models.CharField(max_length=20, unique=True)
     full_name = models.CharField(max_length=255)
     year_enrolled = models.IntegerField(default=datetime.now().year)
     level = models.IntegerField(choices=LEVEL_CHOICES, null=True, blank=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
 
-    department = models.ForeignKey(Department,on_delete=models.PROTECT,null=True,blank=True
-    )
+    department = models.ForeignKey(Department, on_delete=models.PROTECT, null=True, blank=True)
     email = models.EmailField(unique=True)
     did = models.CharField(max_length=100, unique=True, blank=True)
     wallet_address = models.CharField(max_length=42, unique=True, blank=True)
@@ -93,5 +97,3 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.did = did
             self.private_key = private_key
         super().save(*args, **kwargs)
-
-

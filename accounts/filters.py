@@ -1,5 +1,3 @@
-# accounts/filters.py
-
 import django_filters
 from accounts.models import User
 
@@ -10,7 +8,7 @@ class UserFilter(django_filters.FilterSet):
 
     class Meta:
         model = User
-        fields = ['department', 'level', 'status']
+        fields = ['department', 'level', 'status','gender']
 
     def filter_by_status(self, queryset, name, value):
         status_value = value.lower()

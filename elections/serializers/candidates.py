@@ -11,19 +11,7 @@ class CandidateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Candidate
-        fields = [
-            'code',
-            'student',
-            'student_name',
-            'position',
-            'position_code',
-            'position_title',
-            'election_title',
-            'manifesto',
-            'image',
-            'campaign_keywords',
-            'promise'
-        ]
+        fields = "__all__"
         read_only_fields = [
             'code',
             'student_name',

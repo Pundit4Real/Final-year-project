@@ -5,6 +5,7 @@ from accounts.models import User, Department
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     level = serializers.IntegerField(required=False)
+    gender = serializers.ChoiceField(choices=User._meta.get_field('gender').choices, required=False)
     department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(), required=False, write_only=True
     )
@@ -13,7 +14,7 @@ class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'index_number', 'full_name', 'email', 'year_enrolled', 'level',
+            'index_number', 'full_name', 'email', 'year_enrolled', 'level', 'gender',
             'department', 'department_name', 'password'
         ]
 
@@ -47,6 +48,7 @@ class LoginSerializer(serializers.Serializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     department = serializers.CharField(source='department.name', default=None)
+    gender = serializers.CharField(read_only=True)
     current_level = serializers.SerializerMethodField()
     role = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
@@ -57,6 +59,7 @@ class UserListSerializer(serializers.ModelSerializer):
             'index_number',
             'full_name',
             'email',
+            'gender',
             'current_level',
             'year_enrolled',
             'department',

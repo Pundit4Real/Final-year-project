@@ -1,29 +1,28 @@
 from django.contrib import admin, messages
-from django import forms
 from django.utils.html import format_html
 from django.utils.timezone import now
 
 from elections.models.elections import Election
 from elections.models.positions import Position
 from elections.models.candidates import Candidate
-from blockchain.helpers import add_position, add_candidate,add_election
-from elections.forms import CandidateAdminForm,ElectionAdminForm
+from blockchain.helpers import add_position, add_candidate,sync_election
+from elections.forms import CandidateAdminForm, ElectionAdminForm
+
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
     list_display = (
-        'code', 'title', 'election',
-        'get_eligible_levels', 'get_eligible_departments',
-        'sync_status', 'last_synced_at'
+        'code', 'title', 'election','get_eligible_levels', 'get_eligible_departments','gender',
+        'sync_status', 'last_synced','created_at'
     )
     search_fields = ('title', 'election__title', 'code')
-    list_filter = ('election', 'eligible_departments', 'is_synced')
+    list_filter = ('election', 'eligible_departments','gender','is_synced')
     actions = ['sync_to_blockchain']
     readonly_fields = ['code']
 
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
-        exclude = {'is_synced', 'last_synced_at'}
+        exclude = {'is_synced', 'last_synced'}
         return [f for f in fields if f not in exclude]
 
     def get_readonly_fields(self, request, obj=None):
@@ -56,7 +55,7 @@ class PositionAdmin(admin.ModelAdmin):
             try:
                 add_position(position.code, position.title, position.election.code)
                 position.is_synced = True
-                position.last_synced_at = now()
+                position.last_synced = now()
                 position.save()
                 messages.success(request, f"✅ Synced Position '{position.title}'")
                 success += 1
@@ -70,15 +69,21 @@ class PositionAdmin(admin.ModelAdmin):
 @admin.register(Candidate)
 class CandidateAdmin(admin.ModelAdmin):
     form = CandidateAdminForm
-    list_display = ('code', 'student', 'position', 'get_election', 'sync_status', 'last_synced', 'image_preview')
+    list_display = (
+        'code', 'student', 'position', 'get_election',
+        'sync_status', 'last_synced', 'created_at','image_preview'
+    )
     search_fields = ('student__full_name', 'position__title', 'code')
-    list_filter = ('position__election', 'student__department', 'is_synced')
+    list_filter = ('position__election', 'student__department','is_synced')
     actions = ['sync_to_blockchain']
-    readonly_fields = ['code', 'image_preview']
+    readonly_fields = ['code','image_preview']
 
     fieldsets = (
         (None, {
-            'fields': ('student', 'position', 'manifesto', 'campaign_keywords', 'promise', 'image', 'image_preview')
+            'fields': (
+                'student', 'position', 'manifesto', 'campaign_keywords',
+                'promise', 'image', 'image_preview'
+            )
         }),
     )
 
@@ -89,8 +94,8 @@ class CandidateAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.is_synced:
-            return [field.name for field in self.model._meta.fields]
-        return list(super().get_readonly_fields(request, obj)) + ['code', 'image_preview']
+            return [field.name for field in self.model._meta.fields] + ['image_preview']
+        return list(super().get_readonly_fields(request, obj)) + ['code','image_preview']
 
     def has_delete_permission(self, request, obj=None):
         if obj and obj.is_synced:
@@ -129,7 +134,6 @@ class CandidateAdmin(admin.ModelAdmin):
         return "-"
     image_preview.short_description = "Image Preview"
 
-    # Auto-refresh code display after save
     def response_add(self, request, obj, post_url_continue=None):
         return self._refresh_with_code(request, obj, super().response_add)
 
@@ -156,18 +160,29 @@ class ElectionAdmin(admin.ModelAdmin):
 
     actions = ['sync_to_blockchain']
 
+    def get_queryset(self, request):
+        """
+        Ensure statuses are recalculated & saved
+        every time the admin list view loads.
+        """
+        qs = super().get_queryset(request)
+        for election in qs:
+            if hasattr(election, "refresh_status"):
+                election.refresh_status(save=True)
+        return qs
+
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         exclude = {'is_synced', 'last_synced'}
         return [f for f in fields if f not in exclude]
 
     def get_readonly_fields(self, request, obj=None):
-        if obj and obj.is_synced:
+        if obj and getattr(obj, 'is_synced', False):
             return [field.name for field in self.model._meta.fields]
         return super().get_readonly_fields(request, obj)
 
     def has_delete_permission(self, request, obj=None):
-        if obj and obj.is_synced:
+        if obj and getattr(obj, 'is_synced', False):
             return False
         return super().has_delete_permission(request, obj)
 
@@ -179,28 +194,28 @@ class ElectionAdmin(admin.ModelAdmin):
 
     def sync_to_blockchain(self, request, queryset):
         success, failed = 0, 0
+
         for election in queryset:
             try:
-                # ✅ Only pass the election code to the blockchain helper
-                result = add_election(election.code)
+                # ✅ Use the full sync process
+                sync_election(election.code)
 
-                if result.get("status") == "added":
-                    election.is_synced = True
-                    election.last_synced = now()
-                    election.save(update_fields=["is_synced", "last_synced"])
-                    messages.success(request, f"✅ Added Election '{election.title}' to blockchain")
-                    success += 1
-                elif result.get("status") == "exists":
-                    election.is_synced = True
-                    election.last_synced = now()
-                    election.save(update_fields=["is_synced", "last_synced"])
-                    messages.info(request, f"ℹ Election '{election.title}' already exists on-chain")
-                else:
-                    failed += 1
-                    messages.error(request, f"❌ Failed syncing '{election.title}': {result.get('error')}")
+                election.is_synced = True
+                election.last_synced = now()
+                election.save(update_fields=["is_synced", "last_synced"])
+
+                messages.success(
+                    request,
+                    f"✅ '{election.title}' and its positions & candidates synced to blockchain"
+                )
+                success += 1
+
             except Exception as e:
-                messages.error(request, f"❌ Error syncing '{election.title}': {e}")
                 failed += 1
+                messages.error(
+                    request,
+                    f"❌ Failed syncing '{election.title}': {e}"
+                )
 
         messages.info(request, f"Sync complete: {success} success, {failed} failed")
 

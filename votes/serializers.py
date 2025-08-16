@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from accounts.models import GENDER_CHOICES
 from votes.models import Vote
 from elections.models.candidates import Candidate
 from hashlib import sha256
@@ -39,7 +40,9 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         did_hash = sha256(did.encode()).hexdigest()
 
         try:
-            candidate = Candidate.objects.select_related('position__election').get(code=data['candidate_code'])
+            candidate = Candidate.objects.select_related('position__election', 'student').get(
+                code=data['candidate_code']
+            )
         except Candidate.DoesNotExist:
             raise serializers.ValidationError("Invalid candidate code.")
 
@@ -61,6 +64,12 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         if Vote.objects.filter(voter_did_hash=did_hash, position=position).exists():
             raise serializers.ValidationError("You have already voted for this position.")
 
+        if position.gender and position.gender != 'A':
+            if not user.gender or user.gender.lower() != position.gender.lower():
+                raise serializers.ValidationError(
+                    f"This position is restricted to {dict(GENDER_CHOICES).get(position.gender)} voters only."
+                )
+
         # Attach resolved objects
         data['voter_did_hash'] = did_hash
         data['position'] = position
@@ -70,20 +79,7 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from blockchain.helpers import cast_vote
-        from blockchain.utils import web3
-        from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
-
-        # Inject or replace POA middleware safely
-        mw_name = "ExtraDataToPOAMiddleware"
-        existing_mws = [mw.__class__.__name__ for mw in web3.middleware_onion]
-
-        if mw_name not in existing_mws:
-            web3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0, name=mw_name)
-        else:
-            # Replace existing middleware in place
-            idx = existing_mws.index(mw_name)
-            web3.middleware_onion.replace(idx, ExtraDataToPOAMiddleware(), name=mw_name)
-
+        from blockchain.utils import web3  # Already has global POA middleware applied
 
         # Remove write-only codes
         validated_data.pop('candidate_code', None)
@@ -109,7 +105,6 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
                     tx_hash = tx_receipt['transactionHash'].hex()
                 except ContractLogicError as e:
                     if "Receipt already used" in str(e):
-                        # User can retry with a new receipt
                         raise serializers.ValidationError(
                             "Blockchain reports that this vote was already cast. Try again with a fresh attempt."
                         )

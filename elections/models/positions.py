@@ -3,14 +3,24 @@ from accounts.models import Department
 from accounts.utils import generate_code
 from .elections import Election
 
+GENDER_CHOICES = (
+    ('M', 'Male'),
+    ('F', 'Female'),
+    ('A', 'All'),
+)
+
 class Position(models.Model):
     code = models.CharField(max_length=20, unique=True, blank=True)
     election = models.ForeignKey(Election, related_name='positions', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
-    eligible_levels = models.JSONField(default=list)  # Example: [1, 2, 3]
+    eligible_levels = models.JSONField(default=list, help_text="List of eligible levels, e.g., [1, 2, 3]")
     eligible_departments = models.ManyToManyField(Department, blank=True)
+    gender = models.CharField(max_length=1,choices=GENDER_CHOICES,default='A',
+        help_text="Specify gender eligibility for this position."
+    )
+
     is_synced = models.BooleanField(default=False)
-    last_synced_at = models.DateTimeField(null=True, blank=True)
+    last_synced = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -45,9 +55,16 @@ class Position(models.Model):
         super().save(*args, **kwargs)
 
     def is_user_eligible(self, user):
+        """
+        Check if a user meets level, department, and gender eligibility for this position.
+        """
         level_ok = user.current_level in self.eligible_levels
         department_ok = (
             self.eligible_departments.count() == 0 or
             user.department in self.eligible_departments.all()
         )
-        return level_ok and department_ok
+        gender_ok = (
+            self.gender == 'A' or
+            user.gender == self.gender
+        )
+        return level_ok and department_ok and gender_ok
