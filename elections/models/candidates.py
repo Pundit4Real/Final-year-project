@@ -1,4 +1,6 @@
 from django.db import models
+from ckeditor.fields import RichTextField
+from ckeditor_uploader.fields import RichTextUploadingField
 from accounts.models import User
 from accounts.utils import generate_code
 from .positions import Position
@@ -9,10 +11,14 @@ class Candidate(models.Model):
     code = models.CharField(max_length=20, unique=True, blank=True)
     position = models.ForeignKey(Position, related_name='candidates', on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
-    manifesto = models.TextField(blank=True)
+
+    bio = RichTextField(blank=True, null=True, help_text="Candidate short biography")
+    manifesto = RichTextUploadingField(blank=True, help_text="Candidate manifesto with formatting & media")
+
     image = models.ImageField(upload_to=candidate_directory, null=True, blank=True)
-    campaign_keywords = models.CharField(max_length=255, blank=True, help_text="Comma-separated keywords for campaign")
-    promise = models.TextField(blank=True, help_text="Main campaign promise or slogan")
+    campaign_keywords = models.CharField(max_length=255,blank=True,
+                                         help_text="Comma-separated keywords for campaign"
+    )
 
     is_synced = models.BooleanField(default=False)
     last_synced = models.DateTimeField(null=True, blank=True)

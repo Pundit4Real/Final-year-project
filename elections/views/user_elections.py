@@ -52,6 +52,7 @@ class ElectionListView(BaseElectionView, generics.ListAPIView):
 
 
 class ElectionSummaryView(generics.GenericAPIView):
+    serializer_class = ElectionSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -91,10 +92,16 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
         )
 
     def retrieve(self, request, *args, **kwargs):
+        # Always allow retrieval
         election = self.get_object()
-        if election.status == Election.Status.UPCOMING:
-            return Response(
-                {"detail": "This election has not started yet. You can only view information."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        return super().retrieve(request, *args, **kwargs)
+        data = self.get_serializer(election).data
+
+        # Add extra info about voting eligibility
+        if election.status == election.Status.UPCOMING:
+            data["notice"] = "This election has not started yet. You can only view information."
+        elif election.status == election.Status.ENDED:
+            data["notice"] = "This election has ended. You can only view past results."
+        else:
+            data["notice"] = "Voting is currently open."
+
+        return Response(data)

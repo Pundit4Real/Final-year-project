@@ -8,6 +8,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     position_title = serializers.CharField(source='position.title', read_only=True)
     election_title = serializers.CharField(source='position.election.title', read_only=True)
     image = serializers.SerializerMethodField()
+    bio = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Candidate
@@ -44,7 +45,8 @@ class CandidateSerializer(serializers.ModelSerializer):
 
 class CandidateNestedSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
-    image = serializers.SerializerMethodField()  # Add this field
+    image = serializers.SerializerMethodField()
+    bio = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Candidate

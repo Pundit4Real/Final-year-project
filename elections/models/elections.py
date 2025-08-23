@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from ckeditor.fields import RichTextField 
 from accounts.models import Department, School
 from accounts.utils import generate_code
 
@@ -15,7 +16,7 @@ class Election(models.Model):
 
     code = models.CharField(max_length=20, unique=True, blank=True)
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    description = RichTextField(blank=True)  
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     school = models.ForeignKey(

@@ -81,8 +81,8 @@ class CandidateAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': (
-                'student', 'position', 'manifesto', 'campaign_keywords',
-                'promise', 'image', 'image_preview'
+                'student', 'position', 'bio','manifesto', 'campaign_keywords',
+                'image', 'image_preview'
             )
         }),
     )
@@ -197,7 +197,7 @@ class ElectionAdmin(admin.ModelAdmin):
 
         for election in queryset:
             try:
-                # ✅ Use the full sync process
+                # Use the full sync process
                 sync_election(election.code)
 
                 election.is_synced = True
