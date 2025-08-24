@@ -10,11 +10,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name='position',
-            old_name='last_synced_at',
-            new_name='last_synced',
-        ),
+        # migrations.RenameField(
+        #     model_name='position',
+        #     old_name='last_synced_at',
+        #     new_name='last_synced',
+        # ),
         migrations.AddField(
             model_name='candidate',
             name='gender',
