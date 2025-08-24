@@ -155,6 +155,30 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 CKEDITOR_UPLOAD_PATH = "uploads/"
 
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Advanced',
+        'toolbar_Advanced': [
+            {'name': 'document', 'items': ['Source', '-', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo']},
+            {'name': 'basicstyles', 'items': ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat']},
+            {'name': 'paragraph', 'items': ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote']},
+            {'name': 'links', 'items': ['Link', 'Unlink']},
+            {'name': 'insert', 'items': ['Image', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar']},
+            {'name': 'styles', 'items': ['Format', 'Font', 'FontSize']},
+            {'name': 'colors', 'items': ['TextColor', 'BGColor']},
+            {'name': 'tools', 'items': ['Maximize', 'ShowBlocks']},
+        ],
+        'removePlugins': 'stylesheetparser',
+        'extraPlugins': ','.join([
+            'pastefromword',  # clean MS Word formatting
+            'pastetext',      # paste as plain text
+        ]),
+        'enterMode': 2,  # Use <br> instead of <p>
+        'shiftEnterMode': 1,  # Use <p> when Shift+Enter is pressed
+        'forcePasteAsPlainText': False,  # still allows formatted paste, but toolbar has cleanup buttons
+    }
+}
+
 
 
 # Default primary key field type

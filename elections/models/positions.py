@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import Department
+from ckeditor.fields import RichTextField
 from accounts.utils import generate_code
 from .elections import Election
 
@@ -13,6 +14,7 @@ class Position(models.Model):
     code = models.CharField(max_length=20, unique=True, blank=True)
     election = models.ForeignKey(Election, related_name='positions', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
+    description = RichTextField(blank=True, null=True, help_text="short position description")
     eligible_levels = models.JSONField(default=list, help_text="List of eligible levels, e.g., [1, 2, 3]")
     eligible_departments = models.ManyToManyField(Department, blank=True)
     gender = models.CharField(max_length=1,choices=GENDER_CHOICES,default='A',

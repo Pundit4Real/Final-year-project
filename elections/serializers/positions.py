@@ -6,6 +6,8 @@ from .candidates import CandidateNestedSerializer
 class PositionSerializer(serializers.ModelSerializer):
     election_code = serializers.CharField(source='election.code', read_only=True)
     school_name = serializers.CharField(source='election.school.name', read_only=True)
+    description = serializers.CharField(required=False, allow_blank=True)
+
 
     class Meta:
         model = Position
@@ -20,5 +22,5 @@ class PositionNestedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Position
-        fields = ['code', 'title', 'eligible_levels', 'candidates', 'school_name']
+        fields = ['code', 'title', 'description', 'eligible_levels', 'candidates', 'school_name']
         read_only_fields = ['code']
