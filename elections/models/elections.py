@@ -81,6 +81,17 @@ class Election(models.Model):
                 school_name=school_name,
                 scope=scope
             )
+
+        # Prevent editing hard fields if synced
+        if self.pk and self.is_synced:
+            old = Election.objects.get(pk=self.pk)
+            protected_fields = {
+                "title", "start_date", "end_date", "school", "department", "status", "code"
+            }
+            for field in protected_fields:
+                if getattr(old, field) != getattr(self, field):
+                    raise ValueError(f"Cannot update '{field}' after blockchain sync. Only 'description' is editable.")
+
         # Ensure correct status before saving
         self.refresh_status(save=False)
         super().save(*args, **kwargs)

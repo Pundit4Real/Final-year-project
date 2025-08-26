@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from elections.models.elections import Election
 from elections.models.positions import Position
 from elections.models.candidates import Candidate
-from blockchain.helpers import add_position, add_candidate,sync_election
+from blockchain.helpers import add_position, add_candidate, sync_election
 from elections.forms import CandidateAdminForm, ElectionAdminForm
 
 
@@ -27,7 +27,8 @@ class PositionAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.is_synced:
-            return [field.name for field in self.model._meta.fields]
+            # Allow only description to remain editable after sync
+            return [f.name for f in self.model._meta.fields if f.name != 'description']
         return super().get_readonly_fields(request, obj)
 
     def has_delete_permission(self, request, obj=None):
@@ -94,7 +95,9 @@ class CandidateAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.is_synced:
-            return [field.name for field in self.model._meta.fields] + ['image_preview']
+            # Only bio, manifesto, campaign_keywords, and image are editable
+            editable = {'bio','manifesto','campaign_keywords','image'}
+            return [f.name for f in self.model._meta.fields if f.name not in editable] + ['image_preview']
         return list(super().get_readonly_fields(request, obj)) + ['code','image_preview']
 
     def has_delete_permission(self, request, obj=None):
@@ -146,6 +149,7 @@ class CandidateAdmin(admin.ModelAdmin):
             messages.info(request, f"Candidate Code: {obj.code}")
         return response
 
+
 @admin.register(Election)
 class ElectionAdmin(admin.ModelAdmin):
     form = ElectionAdminForm
@@ -157,14 +161,9 @@ class ElectionAdmin(admin.ModelAdmin):
     ordering = ('-start_date',)
     list_filter = ('school', 'department', 'start_date', 'status', 'is_synced')
     readonly_fields = ('code', 'created_at')
-
     actions = ['sync_to_blockchain']
 
     def get_queryset(self, request):
-        """
-        Ensure statuses are recalculated & saved
-        every time the admin list view loads.
-        """
         qs = super().get_queryset(request)
         for election in qs:
             if hasattr(election, "refresh_status"):
@@ -178,7 +177,8 @@ class ElectionAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and getattr(obj, 'is_synced', False):
-            return [field.name for field in self.model._meta.fields]
+            # Only description remains editable
+            return [f.name for f in self.model._meta.fields if f.name != 'description']
         return super().get_readonly_fields(request, obj)
 
     def has_delete_permission(self, request, obj=None):
@@ -194,29 +194,19 @@ class ElectionAdmin(admin.ModelAdmin):
 
     def sync_to_blockchain(self, request, queryset):
         success, failed = 0, 0
-
         for election in queryset:
             try:
-                # Use the full sync process
                 sync_election(election.code)
-
                 election.is_synced = True
                 election.last_synced = now()
                 election.save(update_fields=["is_synced", "last_synced"])
-
                 messages.success(
                     request,
                     f"✅ '{election.title}' and its positions & candidates synced to blockchain"
                 )
                 success += 1
-
             except Exception as e:
                 failed += 1
-                messages.error(
-                    request,
-                    f"❌ Failed syncing '{election.title}': {e}"
-                )
-
+                messages.error(request, f"❌ Failed syncing '{election.title}': {e}")
         messages.info(request, f"Sync complete: {success} success, {failed} failed")
-
     sync_to_blockchain.short_description = "🔁 Sync selected Elections to Blockchain"
