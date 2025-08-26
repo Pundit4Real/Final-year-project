@@ -14,6 +14,7 @@ class Vote(models.Model):
     receipt = models.CharField(max_length=128, unique=True, editable=False)
     tx_hash = models.CharField(max_length=66, blank=True, null=True)
     is_synced = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     # Blockchain info
     block_number = models.PositiveBigIntegerField(blank=True, null=True)

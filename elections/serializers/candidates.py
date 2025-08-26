@@ -31,15 +31,32 @@ class CandidateSerializer(serializers.ModelSerializer):
         student = data.get('student')
         position = data.get('position')
 
+        #Level 400 restriction
         if student.current_level == 4:
             raise serializers.ValidationError(
                 "Students in Level 400 are not eligible to contest."
             )
 
+        # Eligibility check
         if not position.is_user_eligible(student):
             raise serializers.ValidationError(
                 "This student is not eligible to contest for this position."
             )
+
+        #  Ensure one position per election
+        election = position.election
+        existing = Candidate.objects.filter(
+            student=student,
+            position__election=election
+        )
+        if self.instance:  # exclude self on update
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise serializers.ValidationError(
+                f"{student.full_name} is already contesting in this election "
+                f"for another position."
+            )
+
         return data
 
 

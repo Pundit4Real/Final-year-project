@@ -32,6 +32,21 @@ class Position(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.election.title}"
+    
+    def get_winner(self):
+        """
+        Returns the candidate with the highest votes for this position.
+        If no votes exist, returns None.
+        """
+        from votes.models import Vote
+
+        winner = (
+            self.candidates  # ✅ reverse relation from Candidate → Position
+            .annotate(vote_count=models.Count("votes"))  # count votes for each candidate
+            .order_by("-vote_count")
+            .first()
+        )
+        return winner
 
     def save(self, *args, **kwargs):
         if not self.code:
