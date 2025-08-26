@@ -1,18 +1,14 @@
-from django.db.models import Q, Exists, OuterRef, Count
-from rest_framework import generics, status
+from django.db.models import Q, Count
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from elections.models.elections import Election
 from elections.serializers.elections import ElectionSerializer, ElectionDetailSerializer
-from votes.models import Vote
 
 
 class BaseElectionView:
-    """
-    Mixin to ensure request is always in serializer context and queryset is optimized
-    with has_voted, total_candidates, and total_positions annotations.
-    """
+    """Mixin to set serializer context and filter elections by user department/school."""
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
@@ -20,30 +16,17 @@ class BaseElectionView:
 
     def get_queryset(self):
         user = self.request.user
-        voter_did_hash = getattr(user, "did_hash", None)
-
-        vote_subquery = Vote.objects.filter(
-            election=OuterRef('pk'),
-            voter_did_hash=voter_did_hash
-        )
-
         department = getattr(user, "department", None)
         school = getattr(department, "school", None) if department else None
 
-        return (
-            Election.objects
-            .filter(
-                Q(department__isnull=True, school__isnull=True) |
-                Q(department=department) |
-                Q(school=school)
-            )
-            .annotate(
-                has_voted=Exists(vote_subquery),
-                total_candidates=Count('positions__candidates', distinct=True),
-                total_positions=Count('positions', distinct=True)
-            )
-            .select_related('department', 'school')
-        )
+        return Election.objects.filter(
+            Q(department__isnull=True, school__isnull=True) |
+            Q(department=department) |
+            Q(school=school)
+        ).annotate(
+            total_candidates=Count('positions__candidates', distinct=True),
+            total_positions=Count('positions', distinct=True)
+        ).select_related('department', 'school')
 
 
 class ElectionListView(BaseElectionView, generics.ListAPIView):
@@ -59,6 +42,7 @@ class ElectionSummaryView(generics.GenericAPIView):
         user = self.request.user
         department = getattr(user, "department", None)
         school = getattr(department, "school", None) if department else None
+
         return Election.objects.filter(
             Q(department__isnull=True, school__isnull=True) |
             Q(department=department) |
@@ -67,7 +51,6 @@ class ElectionSummaryView(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         qs = self.get_queryset()
-
         summary = qs.aggregate(
             upcoming=Count('id', filter=Q(status=Election.Status.UPCOMING)),
             ongoing=Count('id', filter=Q(status=Election.Status.ONGOING)),
@@ -76,7 +59,6 @@ class ElectionSummaryView(generics.GenericAPIView):
             cancelled=Count('id', filter=Q(status=Election.Status.CANCELLED)),
             total=Count('id')
         )
-
         return Response(summary)
 
 
@@ -86,22 +68,20 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
     lookup_field = 'code'
 
     def get_queryset(self):
-        return (
-            super().get_queryset()
-            .prefetch_related('positions__candidates')
-        )
+        return super().get_queryset().prefetch_related('positions__candidates')
 
     def retrieve(self, request, *args, **kwargs):
-        # Always allow retrieval
         election = self.get_object()
         data = self.get_serializer(election).data
 
-        # Add extra info about voting eligibility
         if election.status == election.Status.UPCOMING:
             data["notice"] = "This election has not started yet. You can only view information."
         elif election.status == election.Status.ENDED:
             data["notice"] = "This election has ended. You can only view past results."
         else:
-            data["notice"] = "Voting is currently open."
+            data["notice"] = (
+                "You have already voted in this election." if data.get("has_voted")
+                else "Voting is currently open."
+            )
 
         return Response(data)

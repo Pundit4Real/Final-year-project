@@ -20,7 +20,6 @@ def add_election(election_code, mark_synced=False):
     Add an election on-chain if it doesn't already exist.
     Returns a dict: {status: bool, error: str or None, receipt: object or None}.
     """
-
     if not election_code:
         return {"status": False, "error": "Election code is required.", "receipt": None}
 
@@ -120,25 +119,97 @@ def get_results(position_code):
     return decoded_codes, raw_votes
 
 
+def get_ballot_results(election_code):
+    """
+    Fetch results for the entire election ballot (all positions + candidates) from blockchain.
+    Wraps the Solidity getBallotResults(electionCode) call.
+    Returns:
+        {
+          "position_code": str,
+          "candidate_code": str,
+          "votes": int
+        }[]
+    """
+    try:
+        raw_positions, raw_candidates, raw_votes = contract().functions.getBallotResults(
+            to_bytes32(election_code)
+        ).call()
+
+        decoded_positions = [from_bytes32(p) for p in raw_positions]
+        decoded_candidates = [from_bytes32(c) for c in raw_candidates]
+
+        results = []
+        for pos_code, cand_code, votes in zip(decoded_positions, decoded_candidates, raw_votes):
+            results.append({
+                "position_code": pos_code,
+                "candidate_code": cand_code,
+                "votes": votes
+            })
+
+        return results
+
+    except Exception as e:
+        logger.exception(f"Failed to fetch ballot results for election {election_code}: {e}")
+        return []
+
+
 # ----------------------
 # Voting
 # ----------------------
 
+from web3.exceptions import ContractLogicError
+from .utils import extract_revert_reason
+
 def cast_vote(position_code, candidate_code, receipt_hash):
-    """Cast a vote with validation and flexible receipt hash input."""
-    if not position_exists_onchain(position_code):
-        raise ValueError(f"Position {position_code} does not exist on-chain.")
+    """Cast a single vote with validation and clean revert-reason reporting."""
+    try:
+        if not position_exists_onchain(position_code):
+            raise ValueError(f"Position {position_code} does not exist on-chain.")
 
-    if not candidate_exists_onchain(position_code, candidate_code):
-        raise ValueError(f"Candidate {candidate_code} does not exist on-chain.")
+        if not candidate_exists_onchain(position_code, candidate_code):
+            raise ValueError(f"Candidate {candidate_code} does not exist on-chain.")
 
-    rh_bytes = to_bytes32(receipt_hash)
-    return build_and_send_tx(
-        contract().functions.vote,
-        to_bytes32(position_code),
-        to_bytes32(candidate_code),
-        rh_bytes
-    )
+        rh_bytes = to_bytes32(receipt_hash)
+        return build_and_send_tx(
+            contract().functions.vote,
+            to_bytes32(position_code),
+            to_bytes32(candidate_code),
+            rh_bytes
+        )
+
+    except ContractLogicError as e:
+        reason = extract_revert_reason(e)
+        raise Exception(f"Vote failed: {reason}")
+    except Exception as e:
+        raise Exception(f"Unexpected error while casting vote: {str(e)}")
+
+
+def cast_vote_batch(position_codes, candidate_codes, receipt_hashes):
+    """
+    Cast multiple votes (batch) in a single blockchain transaction.
+    Each array must be the same length. Includes clean revert-reason reporting.
+    """
+    try:
+        if not (len(position_codes) == len(candidate_codes) == len(receipt_hashes)):
+            raise ValueError("Mismatched array lengths for batch voting.")
+
+        # Convert all inputs to bytes32
+        pos_bytes = [to_bytes32(p) for p in position_codes]
+        cand_bytes = [to_bytes32(c) for c in candidate_codes]
+        receipt_bytes = [to_bytes32(r) for r in receipt_hashes]
+
+        return build_and_send_tx(
+            contract().functions.voteBatch,
+            pos_bytes,
+            cand_bytes,
+            receipt_bytes
+        )
+
+    except ContractLogicError as e:
+        reason = extract_revert_reason(e)
+        raise Exception(f"Batch vote failed: {reason}")
+    except Exception as e:
+        raise Exception(f"Unexpected error while casting batch vote: {str(e)}")
 
 
 # ----------------------
@@ -147,11 +218,11 @@ def cast_vote(position_code, candidate_code, receipt_hash):
 
 def sync_election(election_code):
     """Ensure election exists on-chain, then sync positions & candidates."""
-    # Step 1: Deploy election if missing
+    # Deploy election if missing
     if not contract().functions.electionExists(to_bytes32(election_code)).call():
         add_election(election_code, mark_synced=True)
 
-    # Step 2: Sync positions
+    # Sync positions
     election = Election.objects.get(code=election_code)
     for position in Position.objects.filter(election=election):
         if not position_exists_onchain(position.code):
@@ -159,7 +230,7 @@ def sync_election(election_code):
         else:
             Position.objects.filter(code=position.code).update(is_synced=True)
 
-        # Step 3: Sync candidates
+        # Sync candidates
         for candidate in Candidate.objects.filter(position=position):
             if not candidate_exists_onchain(position.code, candidate.code):
                 add_candidate(position.code, candidate.code, candidate.student.full_name)

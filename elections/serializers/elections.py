@@ -1,19 +1,22 @@
 from rest_framework import serializers
 from elections.models.elections import Election
+from votes.models import Vote
 from .positions import PositionNestedSerializer
+import hashlib
+
+
+def hash_did(did: str) -> str:
+    """Hash the DID exactly as it's stored in Vote.voter_did_hash."""
+    return hashlib.sha256(did.encode()).hexdigest()
 
 
 class ElectionSerializer(serializers.ModelSerializer):
     has_voted = serializers.SerializerMethodField()
-    department_name = serializers.CharField(source='department.name', read_only=True)
-    school_name = serializers.CharField(source='school.name', read_only=True)
     total_candidates = serializers.IntegerField(read_only=True)
     total_positions = serializers.IntegerField(read_only=True)
-    # Make status readable but conditionally writable
-    status = serializers.ChoiceField(
-        choices=Election.Status.choices,
-        required=False
-    )
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    school_name = serializers.CharField(source='school.name', read_only=True)
+    status = serializers.ChoiceField(choices=Election.Status.choices, required=False)
 
     class Meta:
         model = Election
@@ -24,19 +27,18 @@ class ElectionSerializer(serializers.ModelSerializer):
         ]
 
     def get_has_voted(self, obj):
-        if hasattr(obj, 'has_voted'):
-            return bool(obj.has_voted)
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.has_voted(request.user)
-        return False
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+
+        voter_hash = hash_did(request.user.did)
+        return Vote.objects.filter(election=obj, voter_did_hash=voter_hash).exists()
 
     def create(self, validated_data):
         validated_data['status'] = Election.Status.DRAFT
         return super().create(validated_data)
 
     def to_internal_value(self, data):
-        # Prevent setting status at creation
         if self.instance is None and 'status' in data:
             data = dict(data)
             data.pop('status', None)
@@ -52,10 +54,7 @@ class ElectionDetailSerializer(serializers.ModelSerializer):
     total_positions = serializers.IntegerField(read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
     school_name = serializers.CharField(source='school.name', read_only=True)
-    status = serializers.ChoiceField(
-        choices=Election.Status.choices,
-        required=False
-    )
+    status = serializers.ChoiceField(choices=Election.Status.choices, required=False)
 
     class Meta:
         model = Election
@@ -73,15 +72,14 @@ class ElectionDetailSerializer(serializers.ModelSerializer):
         return obj.has_ended()
 
     def get_has_voted(self, obj):
-        if hasattr(obj, 'has_voted'):
-            return bool(obj.has_voted)
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.has_voted(request.user)
-        return False
+        if not request or not request.user.is_authenticated:
+            return False
+
+        voter_hash = hash_did(request.user.did)
+        return Vote.objects.filter(election=obj, voter_did_hash=voter_hash).exists()
 
     def to_internal_value(self, data):
-        # Prevent setting status at creation
         if self.instance is None and 'status' in data:
             data = dict(data)
             data.pop('status', None)

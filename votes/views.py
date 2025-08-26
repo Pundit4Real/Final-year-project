@@ -1,4 +1,4 @@
-from blockchain.helpers import get_results
+from blockchain.helpers import get_results, get_ballot_results
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,44 +14,111 @@ import logging
 
 
 logger = logging.getLogger(__name__)
-
 class CastVoteView(generics.CreateAPIView):
-    serializer_class = AnonymousVoteSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_class(self):
+        """
+        Dynamically choose serializer:
+        - If request includes 'votes' (list), use BallotVoteSerializer (voteBatch).
+        - Otherwise, use AnonymousVoteSerializer (single vote).
+        """
+        if isinstance(self.request.data.get("votes"), list):
+            from votes.serializers import BallotVoteSerializer
+            return BallotVoteSerializer
+        return AnonymousVoteSerializer
+
+    def perform_create(self, serializer):
+        """
+        Always bind voter_did from the authenticated user.
+        Prevents clients from spoofing voter identity.
+        """
+        voter_did_hash = getattr(self.request.user, "did", None)
+        if not voter_did_hash:
+            raise ValueError("Authenticated user has no DID set.")
+        serializer.save(voter_did=voter_did_hash)
+
     @swagger_auto_schema(
-        operation_summary="Cast a vote",
-        operation_description="Vote anonymously using election, position, and candidate codes.",
+        operation_summary="Cast a vote or ballot",
+        operation_description="Supports both single vote and multi-position ballot voting.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            description="Submit either a single vote or a ballot",
             properties={
-                "election_code": openapi.Schema(type=openapi.TYPE_STRING),
-                "position_code": openapi.Schema(type=openapi.TYPE_STRING),
-                "candidate_code": openapi.Schema(type=openapi.TYPE_STRING),
+                "election_code": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Election code",
+                    example="ELECTION2025"
+                ),
+                "position_code": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Position code (for single vote)",
+                    example="PRESIDENT"
+                ),
+                "candidate_code": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Candidate code (for single vote)",
+                    example="CAND123"
+                ),
+                "votes": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="List of votes for ballot",
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "position_code": openapi.Schema(
+                                type=openapi.TYPE_STRING, example="PRESIDENT"
+                            ),
+                            "candidate_code": openapi.Schema(
+                                type=openapi.TYPE_STRING, example="CAND123"
+                            ),
+                        },
+                        required=["position_code", "candidate_code"]
+                    )
+                )
             },
-            required=["election_code", "position_code", "candidate_code"]
+            required=["election_code"]
         ),
-        responses={201: "Vote cast successfully", 400: "Invalid input or already voted."}
+        responses={
+            201: "Vote(s) cast successfully",
+            400: "Invalid input or already voted",
+            500: "Unexpected server error"
+        },
     )
     def post(self, request, *args, **kwargs):
-        election_code = request.data.get("election_code")
-        position_code = request.data.get("position_code")
-        candidate_code = request.data.get("candidate_code")
+        logger.debug("Incoming vote request: %s", request.data)
 
-        if not all([election_code, position_code, candidate_code]):
-            return Response({"error": "All codes are required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        data = {
-            "election_code": election_code,
-            "position_code": position_code,
-            "candidate_code": candidate_code
-        }
-
-        serializer = self.get_serializer(data=data, context={"request": request})
+        serializer = self.get_serializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             try:
-                vote_instance = serializer.save()
+                logger.debug("Serializer validated data: %s", serializer.validated_data)
+
+                # save() now forces voter_did=request.user.did via perform_create
+                result = self.perform_create(serializer)
+                logger.debug("Serializer save() returned: %s", result)
+
+                # Ballot vote (list of votes)
+                if isinstance(result, list):
+                    logger.debug("Ballot vote detected, votes=%s", len(result))
+                    return Response({
+                        "message": "Ballot cast successfully.",
+                        "tx_hash": result[0].tx_hash if result else None,
+                        "votes": [
+                            {
+                                "receipt": v.receipt,
+                                "position": v.position.title,
+                                "candidate": v.candidate.student.full_name,
+                                "status": v.status,
+                            }
+                            for v in result
+                        ]
+                    }, status=status.HTTP_201_CREATED)
+
+                # Single vote
+                vote_instance = result
                 blockchain_info = getattr(vote_instance, "blockchain_info", {})
+
+                logger.debug("Single vote instance blockchain info: %s", blockchain_info)
 
                 return Response({
                     "message": "Vote cast successfully.",
@@ -66,24 +133,23 @@ class CastVoteView(generics.CreateAPIView):
                 }, status=status.HTTP_201_CREATED)
 
             except ContractLogicError as e:
-                # Blockchain rejected the transaction
+                logger.error("ContractLogicError: %s", e, exc_info=True)
                 if "Receipt already used" in str(e):
-                    # Inform front-end that the user can retry
                     return Response({
                         "error": "Previous receipt was already used. Please retry to generate a fresh receipt."
                     }, status=status.HTTP_400_BAD_REQUEST)
-
-                logger.exception("Blockchain contract logic error")
-                return Response({
-                    "error": "Blockchain rejected the vote due to contract logic error."
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Blockchain rejected the vote due to contract logic error."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             except Exception as e:
-                # Catch all other unexpected errors
-                logger.exception(f"Unexpected error during vote casting: {e}")
-                return Response({
-                    "error": "An unexpected error occurred during vote casting. Please retry."
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                logger.error("Unexpected error during vote casting: %s", e, exc_info=True)
+                return Response(
+                    {"error": "An unexpected error occurred during vote casting. Please retry."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
+        logger.warning("Serializer validation errors: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class VoteVerificationView(APIView):
@@ -139,17 +205,12 @@ class VoteResultsView(APIView):
         except (Election.DoesNotExist, Position.DoesNotExist):
             return Response({"error": "Election or Position not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Total votes cast in the election
         total_votes_cast = Vote.objects.filter(election=election).count()
-
-        # Total votes synced to blockchain
         total_votes_synced = Vote.objects.filter(election=election, is_synced=True).count()
         percent_synced = (total_votes_synced / total_votes_cast * 100) if total_votes_cast else 0
 
-        # Total votes cast for the position across all elections
         total_votes_position = Vote.objects.filter(position=position).count()
 
-        # Votes for each candidate in the position in this election
         votes_qs = (
             Vote.objects.filter(election=election, position=position)
             .values("candidate__student__full_name", "candidate__code")
@@ -176,7 +237,6 @@ class VoteResultsView(APIView):
             elif vote_count == max_votes:
                 winners.append(v["candidate__code"])
 
-        # Mark win status per candidate
         for res in results:
             res['is_winner'] = res['candidate_code'] in winners
 
@@ -203,3 +263,50 @@ class BlockchainResultsView(APIView):
                 for code, count in zip(codes, counts)
             ]
         })
+
+class BlockchainBallotResultsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Get blockchain results for all positions in an election",
+        manual_parameters=[
+            openapi.Parameter("election_code", openapi.IN_QUERY, type=openapi.TYPE_STRING, required=True),
+        ]
+    )
+    def get(self, request):
+        election_code = request.GET.get("election_code")
+        if not election_code:
+            return Response({"error": "election_code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            raw_results = get_ballot_results(election_code)
+
+            # Group results by position_code
+            grouped = {}
+            for r in raw_results:
+                pos = r["position_code"]
+                cand = {
+                    "candidate_code": r["candidate_code"],
+                    "votes": r["votes"],
+                }
+                grouped.setdefault(pos, []).append(cand)
+
+            # Find winners per position
+            positions = []
+            for pos_code, candidates in grouped.items():
+                max_votes = max([c["votes"] for c in candidates]) if candidates else 0
+                for c in candidates:
+                    c["is_winner"] = c["votes"] == max_votes and max_votes > 0
+                positions.append({
+                    "position_code": pos_code,
+                    "candidates": candidates
+                })
+
+            return Response({
+                "election_code": election_code,
+                "positions": positions
+            })
+
+        except Exception as e:
+            logger.exception(f"Error fetching blockchain ballot results: {e}")
+            return Response({"error": "Failed to fetch blockchain results."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

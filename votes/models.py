@@ -32,5 +32,5 @@ class Vote(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.receipt:
-            self.receipt = uuid.uuid4().hex  # Or use SHA-based logic if needed
+            self.receipt = uuid.uuid4().hex 
         super().save(*args, **kwargs)

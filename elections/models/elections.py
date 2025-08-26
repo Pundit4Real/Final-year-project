@@ -98,5 +98,9 @@ class Election(models.Model):
         return self.get_status_display()
 
     def has_voted(self, user):
+        """Check whether this user's DID has already voted in the election."""
         from votes.models import Vote
-        return Vote.objects.filter(election=self, voter=user).exists()
+        did = getattr(user, "did", None)
+        if not did:
+            return False
+        return Vote.objects.filter(election=self, voter_did_hash=did).exists()

@@ -142,6 +142,35 @@
 		"inputs": [
 			{
 				"internalType": "bytes32",
+				"name": "electionCode",
+				"type": "bytes32"
+			}
+		],
+		"name": "getBallotResults",
+		"outputs": [
+			{
+				"internalType": "bytes32[]",
+				"name": "positionCodes",
+				"type": "bytes32[]"
+			},
+			{
+				"internalType": "bytes32[][]",
+				"name": "allCandidateCodes",
+				"type": "bytes32[][]"
+			},
+			{
+				"internalType": "uint256[][]",
+				"name": "allVoteCounts",
+				"type": "uint256[][]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
 				"name": "positionCode",
 				"type": "bytes32"
 			}
@@ -219,6 +248,29 @@
 			}
 		],
 		"name": "vote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32[]",
+				"name": "positionCodes",
+				"type": "bytes32[]"
+			},
+			{
+				"internalType": "bytes32[]",
+				"name": "candidateCodes",
+				"type": "bytes32[]"
+			},
+			{
+				"internalType": "bytes32[]",
+				"name": "receiptHashes",
+				"type": "bytes32[]"
+			}
+		],
+		"name": "voteBatch",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
