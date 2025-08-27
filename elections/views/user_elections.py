@@ -74,6 +74,19 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
         election = self.get_object()
         data = self.get_serializer(election).data
 
+        # ✅ Filter positions using Position.is_user_eligible
+        user = request.user
+        filtered_positions = []
+        for pos in election.positions.all():
+            if pos.is_user_eligible(user):
+                # Keep only eligible positions in serialized response
+                for serialized in data.get("positions", []):
+                    if serialized["code"] == pos.code:
+                        filtered_positions.append(serialized)
+                        break
+        data["positions"] = filtered_positions
+
+        # ✅ Notices based on election status
         if election.status == election.Status.UPCOMING:
             data["notice"] = "This election has not started yet. You can only view information."
         elif election.status == election.Status.ENDED:
