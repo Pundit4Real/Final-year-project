@@ -191,8 +191,8 @@ cython_debug/
 
 
 # media files
-# media
-# !media/avatar.png
+media
+!media/avatar.png
 
 # Migration files
 */migrations/*.py

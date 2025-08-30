@@ -9,7 +9,7 @@ class Vote(models.Model):
     voter_did_hash = models.CharField(max_length=64)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='votes')
     position = models.ForeignKey(Position, on_delete=models.CASCADE)
-    election = models.ForeignKey(Election, on_delete=models.CASCADE)
+    election = models.ForeignKey(Election, on_delete=models.CASCADE,related_name="votes")
     timestamp = models.DateTimeField(auto_now_add=True)
     receipt = models.CharField(max_length=128, unique=True, editable=False)
     tx_hash = models.CharField(max_length=66, blank=True, null=True)

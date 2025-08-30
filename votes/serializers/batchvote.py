@@ -46,7 +46,6 @@ class BallotVoteSerializer(serializers.Serializer):
 
             if election.code != election_code:
                 raise serializers.ValidationError("All votes must belong to the same election.")
-
             if user.current_level == 4:
                 raise serializers.ValidationError("Level 400 students are not allowed to vote.")
             if not position.is_user_eligible(user):
@@ -82,10 +81,7 @@ class BallotVoteSerializer(serializers.Serializer):
         validated_votes = validated_data['validated_votes']
 
         # Prepare arrays for Solidity voteBatch
-        position_codes = []
-        candidate_codes = []
-        receipt_hashes = []
-
+        position_codes, candidate_codes, receipt_hashes = [], [], []
         for v in validated_votes:
             receipt_hash_hex = hexlify(os.urandom(32)).decode()
             position_codes.append(v["position"].code)
@@ -93,26 +89,13 @@ class BallotVoteSerializer(serializers.Serializer):
             receipt_hashes.append(receipt_hash_hex)
 
         try:
+            # Call blockchain first
+            tx_receipt = cast_vote_batch(position_codes, candidate_codes, receipt_hashes)
+            tx_hash = tx_receipt['transactionHash'].hex()
+
+            # Persist votes immediately with minimal data
+            created_votes = []
             with transaction.atomic():
-                tx_receipt = cast_vote_batch(position_codes, candidate_codes, receipt_hashes)
-                tx_hash = tx_receipt['transactionHash'].hex()
-
-                block_number = tx_receipt.get('blockNumber')
-                confirmations, block_timestamp = None, None
-                status = "Success" if tx_receipt.get('status') == 1 else "Failed"
-
-                if block_number:
-                    try:
-                        block = web3.eth.get_block(block_number)
-                        latest_block = web3.eth.block_number
-                        confirmations = latest_block - block_number
-                        if isinstance(block.timestamp, (int, float)):
-                            block_timestamp = datetime.fromtimestamp(block.timestamp)
-                    except Exception as e:
-                        logger.warning(f"Unable to fetch block info for block {block_number}: {e}")
-
-                # Save each vote locally
-                created_votes = []
                 for idx, v in enumerate(validated_votes):
                     vote = Vote.objects.create(
                         candidate=v["candidate"],
@@ -121,16 +104,37 @@ class BallotVoteSerializer(serializers.Serializer):
                         voter_did_hash=voter_did_hash,
                         receipt=receipt_hashes[idx],
                         tx_hash=tx_hash,
+                        status="Pending",
                         is_synced=True,
-                        block_number=block_number,
-                        block_confirmations=confirmations,
-                        block_timestamp=block_timestamp,
-                        status=status
                     )
                     created_votes.append(vote)
+
+            # Best-effort update with block info
+            try:
+                block_number = tx_receipt.get('blockNumber')
+                confirmations, block_timestamp = None, None
+                status = "Success" if tx_receipt.get('status') == 1 else "Failed"
+
+                if block_number:
+                    block = web3.eth.get_block(block_number)
+                    latest_block = web3.eth.block_number
+                    confirmations = latest_block - block_number
+                    if isinstance(block.timestamp, (int, float)):
+                        block_timestamp = datetime.fromtimestamp(block.timestamp)
+
+                for vote in created_votes:
+                    vote.block_number = block_number
+                    vote.block_confirmations = confirmations
+                    vote.block_timestamp = block_timestamp
+                    vote.status = status
+                    vote.save(update_fields=[
+                        "block_number", "block_confirmations", "block_timestamp", "status"
+                    ])
+            except Exception as e:
+                logger.warning(f"Block info update failed after ballot vote: {e}")
 
             return created_votes
 
         except Exception as e:
-            logger.exception(f"Unexpected error during ballot voting: {e}")
+            logger.exception(f"Ballot voting failed unexpectedly: {e}")
             raise serializers.ValidationError("Ballot voting failed due to an unexpected error.")

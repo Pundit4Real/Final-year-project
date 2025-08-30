@@ -22,17 +22,17 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vote
         fields = [
-            'candidate_code', 'position_code', 'election_code',
-            'timestamp', 'receipt', 'tx_hash', 'is_synced',
-            'block_number', 'block_confirmations', 'block_timestamp', 'status'
+            "candidate_code", "position_code", "election_code",
+            "timestamp", "receipt", "tx_hash", "is_synced",
+            "block_number", "block_confirmations", "block_timestamp", "status"
         ]
         read_only_fields = [
-            'timestamp', 'receipt', 'tx_hash', 'is_synced',
-            'block_number', 'block_confirmations', 'block_timestamp', 'status'
+            "timestamp", "receipt", "tx_hash", "is_synced",
+            "block_number", "block_confirmations", "block_timestamp", "status"
         ]
 
     def validate(self, data):
-        user = self.context['request'].user
+        user = self.context["request"].user
         did = user.did
         if not did:
             raise serializers.ValidationError("User DID not found.")
@@ -40,8 +40,8 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         did_hash = sha256(did.encode()).hexdigest()
 
         try:
-            candidate = Candidate.objects.select_related('position__election', 'student').get(
-                code=data['candidate_code']
+            candidate = Candidate.objects.select_related("position__election", "student").get(
+                code=data["candidate_code"]
             )
         except Candidate.DoesNotExist:
             raise serializers.ValidationError("Invalid candidate code.")
@@ -49,9 +49,10 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         position = candidate.position
         election = position.election
 
-        if data['position_code'] != position.code:
+        # Integrity checks
+        if data["position_code"] != position.code:
             raise serializers.ValidationError("Position code mismatch.")
-        if data['election_code'] != election.code:
+        if data["election_code"] != election.code:
             raise serializers.ValidationError("Election code mismatch.")
         if user.current_level == 4:
             raise serializers.ValidationError("Level 400 students are not allowed to vote.")
@@ -64,135 +65,75 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         if Vote.objects.filter(voter_did_hash=did_hash, position=position).exists():
             raise serializers.ValidationError("You have already voted for this position.")
 
-        if position.gender and position.gender != 'A':
+        if position.gender and position.gender != "A":
             if not user.gender or user.gender.lower() != position.gender.lower():
                 raise serializers.ValidationError(
                     f"This position is restricted to {dict(GENDER_CHOICES).get(position.gender)} voters only."
                 )
 
         # Attach resolved objects
-        data['voter_did_hash'] = did_hash
-        data['position'] = position
-        data['election'] = election
-        data['candidate'] = candidate
+        data["voter_did_hash"] = did_hash
+        data["position"] = position
+        data["election"] = election
+        data["candidate"] = candidate
         return data
 
     def create(self, validated_data):
-        from blockchain.helpers import cast_vote, cast_vote_batch
+        from blockchain.helpers import cast_vote
         from blockchain.utils import web3
 
-        voter_did_hash = validated_data['voter_did_hash']
+        voter_did_hash = validated_data["voter_did_hash"]
+        candidate = validated_data["candidate"]
+        position = validated_data["position"]
+        election = validated_data["election"]
 
-        # Detect if request is batch or single
-        if 'validated_vote' in validated_data: 
-            validated_votes = validated_data['validated_vote']
+        # 🔑 Generate ONE receipt tied to THIS candidate only
+        receipt_hash_hex = hexlify(os.urandom(32)).decode()
 
-            position_codes, candidate_codes, receipt_hashes = [], [], []
-            for v in validated_votes:
-                receipt_hash_hex = hexlify(os.urandom(32)).decode()
-                position_codes.append(v["position"].code)
-                candidate_codes.append(v["candidate"].code)
-                receipt_hashes.append(receipt_hash_hex)
+        try:
+            tx_receipt = cast_vote(position.code, candidate.code, receipt_hash_hex)
+            tx_hash = tx_receipt["transactionHash"].hex()
 
+            # Persist vote immediately
+            with transaction.atomic():
+                vote = Vote.objects.create(
+                    candidate=candidate,
+                    position=position,
+                    election=election,
+                    voter_did_hash=voter_did_hash,
+                    receipt=receipt_hash_hex,
+                    tx_hash=tx_hash,
+                    status="Pending",
+                    is_synced=True,
+                )
+
+            # Best-effort update with blockchain info
             try:
-                with transaction.atomic():
-                    tx_receipt = cast_vote_batch(position_codes, candidate_codes, receipt_hashes)
-                    tx_hash = tx_receipt['transactionHash'].hex()
+                block_number = tx_receipt.get("blockNumber")
+                confirmations, block_timestamp = None, None
+                status = "Success" if tx_receipt.get("status") == 1 else "Failed"
 
-                    block_number = tx_receipt.get('blockNumber')
-                    confirmations, block_timestamp = None, None
-                    status = "Success" if tx_receipt.get('status') == 1 else "Failed"
+                if block_number:
+                    block = web3.eth.get_block(block_number)
+                    latest_block = web3.eth.block_number
+                    confirmations = latest_block - block_number
+                    if isinstance(block.timestamp, (int, float)):
+                        block_timestamp = datetime.fromtimestamp(block.timestamp)
 
-                    if block_number:
-                        try:
-                            block = web3.eth.get_block(block_number)
-                            latest_block = web3.eth.block_number
-                            confirmations = latest_block - block_number
-                            if isinstance(block.timestamp, (int, float)):
-                                block_timestamp = datetime.fromtimestamp(block.timestamp)
-                        except Exception as e:
-                            logger.warning(f"Unable to fetch block info for block {block_number}: {e}")
-
-                    created_votes = []
-                    for idx, v in enumerate(validated_votes):
-                        vote = Vote.objects.create(
-                            candidate=v["candidate"],
-                            position=v["position"],
-                            election=v["election"],
-                            voter_did_hash=voter_did_hash,
-                            receipt=receipt_hashes[idx],
-                            tx_hash=tx_hash,
-                            is_synced=True,
-                            block_number=block_number,
-                            block_confirmations=confirmations,
-                            block_timestamp=block_timestamp,
-                            status=status
-                        )
-                        created_votes.append(vote)
-
-                return created_votes
-
+                vote.block_number = block_number
+                vote.block_confirmations = confirmations
+                vote.block_timestamp = block_timestamp
+                vote.status = status
+                vote.save(update_fields=["block_number", "block_confirmations", "block_timestamp", "status"])
             except Exception as e:
-                logger.exception(f"Unexpected error during batch voting: {e}")
-                raise serializers.ValidationError("Batch voting failed due to an unexpected error.")
+                logger.warning(f"Block info update failed after single vote: {e}")
 
-        else:  # Single vote mode
-            candidate = validated_data['candidate']
-            position = validated_data['position']
-            election = validated_data['election']
+            return vote
 
-            receipt_hash_hex = hexlify(os.urandom(32)).decode()
-
-            try:
-                with transaction.atomic():
-                    if Vote.objects.filter(voter_did_hash=voter_did_hash, position=position).exists():
-                        raise serializers.ValidationError("You have already voted for this position.")
-
-                    try:
-                        tx_receipt = cast_vote(position.code, candidate.code, receipt_hash_hex)
-                        tx_hash = tx_receipt['transactionHash'].hex()
-                    except ContractLogicError as e:
-                        if "Receipt already used" in str(e):
-                            raise serializers.ValidationError("Blockchain reports duplicate receipt.")
-                        raise
-
-                    block_number = tx_receipt.get('blockNumber')
-                    confirmations, block_timestamp = None, None
-                    status = "Success" if tx_receipt.get('status') == 1 else "Failed"
-
-                    if block_number:
-                        try:
-                            block = web3.eth.get_block(block_number)
-                            latest_block = web3.eth.block_number
-                            confirmations = latest_block - block_number
-                            if isinstance(block.timestamp, (int, float)):
-                                block_timestamp = datetime.fromtimestamp(block.timestamp)
-                        except Exception as e:
-                            logger.warning(f"Unable to fetch block info for block {block_number}: {e}")
-
-                    vote = Vote.objects.create(
-                        candidate=candidate,
-                        position=position,
-                        election=election,
-                        voter_did_hash=voter_did_hash,
-                        receipt=receipt_hash_hex,
-                        tx_hash=tx_hash,
-                        is_synced=True,
-                        block_number=block_number,
-                        block_confirmations=confirmations,
-                        block_timestamp=block_timestamp,
-                        status=status
-                    )
-
-                vote.blockchain_info = {
-                    "status": status,
-                    "block_number": block_number,
-                    "block_confirmations": confirmations,
-                    "block_timestamp": block_timestamp
-                }
-
-                return vote
-
-            except Exception as e:
-                logger.exception(f"Unexpected error during single voting: {e}")
-                raise serializers.ValidationError("Voting failed due to an unexpected error.")
+        except ContractLogicError as e:
+            if "Receipt already used" in str(e):
+                raise serializers.ValidationError("Blockchain reports duplicate receipt.")
+            raise
+        except Exception as e:
+            logger.exception(f"Unexpected error while casting single vote: {e}")
+            raise serializers.ValidationError("Voting failed unexpectedly.")

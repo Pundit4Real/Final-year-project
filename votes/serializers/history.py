@@ -1,3 +1,4 @@
+# votes/serializers/history.py
 from rest_framework import serializers
 from votes.models import Vote
 from elections.models.candidates import Candidate
@@ -41,21 +42,13 @@ class PositionHistorySerializer(serializers.ModelSerializer):
         fields = ["code", "title", "description", "candidates", "user_vote", "winner"]
 
     def get_user_vote(self, obj):
-        """
-        Return only the current user's vote for this position.
-        Uses prefetched user_votes passed from ElectionHistorySerializer.
-        """
+        """Return this user's vote for this position (if any)."""
         user_votes = self.context.get("user_votes", {})
         vote = user_votes.get(obj.id)
         return VoteHistorySerializer(vote, context=self.context).data if vote else None
 
     def get_winner(self, obj):
-        """
-        Return the candidate with the most votes for this position.
-        Winner is resolved in-memory from annotated vote_count (no queries).
-        """
-        if not hasattr(obj, "candidates"):
-            return None
+        """Pick candidate with the most votes (vote_count annotated already)."""
         candidates = list(obj.candidates.all())
         if not candidates:
             return None
@@ -78,16 +71,12 @@ class ElectionHistorySerializer(serializers.ModelSerializer):
         ]
 
     def get_positions(self, obj):
-        """
-        Pass prefetched user_votes down to positions serializer,
-        so no fallback queries are needed.
-        """
+        """Inject this election’s user_votes map for Position serializer."""
         user_votes = getattr(obj, "user_votes", [])
-        # Build dict {position_id: vote} for fast lookup
         user_votes_map = {vote.position_id: vote for vote in user_votes}
 
         return PositionHistorySerializer(
-            obj.prefetched_positions if hasattr(obj, "prefetched_positions") else obj.positions.all(),
+            getattr(obj, "prefetched_positions", obj.positions.all()),
             many=True,
             context={**self.context, "user_votes": user_votes_map},
         ).data

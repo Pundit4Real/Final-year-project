@@ -83,10 +83,14 @@ class CastVoteView(generics.CreateAPIView):
                         "tx_hash": getattr(result[0], "tx_hash", None) if result else None,
                         "votes": [
                             {
-                                "receipt": getattr(v, "receipt", None),
+                                "receipt": v.receipt,
+                                "election": getattr(v.election, "title", None),
                                 "position": getattr(v.position, "title", None),
                                 "candidate": getattr(v.candidate.student, "full_name", None),
-                                "status": getattr(v, "status", "Unknown"),
+                                "status": v.status,
+                                "block_number": v.block_number,
+                                "block_confirmations": v.block_confirmations,
+                                "block_timestamp": v.block_timestamp,
                             }
                             for v in result
                         ]
@@ -94,18 +98,14 @@ class CastVoteView(generics.CreateAPIView):
 
                 # Single vote
                 vote_instance = result
-                blockchain_info = getattr(vote_instance, "blockchain_info", {}) or {}
-
-                logger.debug("Single vote instance blockchain info: %s", blockchain_info)
-
                 return Response({
                     "message": "Vote cast successfully.",
-                    "receipt": getattr(vote_instance, "receipt", None),
-                    "tx_hash": getattr(vote_instance, "tx_hash", None),
-                    "status": blockchain_info.get("status", "Unknown"),
-                    "block_number": blockchain_info.get("block_number"),
-                    "block_confirmations": blockchain_info.get("block_confirmations"),
-                    "block_timestamp": blockchain_info.get("block_timestamp"),
+                    "receipt": vote_instance.receipt,
+                    "tx_hash": vote_instance.tx_hash,
+                    "status": vote_instance.status,
+                    "block_number": vote_instance.block_number,
+                    "block_confirmations": vote_instance.block_confirmations,
+                    "block_timestamp": vote_instance.block_timestamp,
                     "position": getattr(vote_instance.position, "title", None),
                     "election": getattr(vote_instance.election, "title", None),
                 }, status=status.HTTP_201_CREATED)

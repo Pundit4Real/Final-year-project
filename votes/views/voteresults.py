@@ -72,12 +72,13 @@ class VoteResultsView(APIView):
         })
 
     def _calculate_position_results(self, election, position):
-        """Helper to compute results for a single position."""
+        """Helper to compute results for a single position with receipts per candidate."""
         total_votes_position = Vote.objects.filter(position=position).count()
 
+        # Aggregated vote counts per candidate
         votes_qs = (
             Vote.objects.filter(election=election, position=position)
-            .values("candidate__student__full_name", "candidate__code")
+            .values("candidate__student__full_name", "candidate__image", "candidate__code")
             .annotate(total_votes=Count("id"))
             .order_by("-total_votes")
         )
@@ -89,25 +90,36 @@ class VoteResultsView(APIView):
         for v in votes_qs:
             vote_count = v["total_votes"]
             percent = (vote_count / total_votes_position * 100) if total_votes_position else 0
+
+            # Fetch all receipts for this candidate in this position
+            candidate_votes = Vote.objects.filter(
+                election=election, position=position, candidate__code=v["candidate__code"]
+            ).values(
+                "receipt", "tx_hash", "status",
+                "block_number", "block_confirmations", "block_timestamp"
+            )
+
             results.append({
                 "candidate_full_name": v["candidate__student__full_name"],
                 "candidate_code": v["candidate__code"],
+                "candidate_image": v["candidate__image"],
                 "total_votes": vote_count,
                 "percentage": round(percent, 2),
+                "receipts": list(candidate_votes),  # 👈 include all receipts per candidate
             })
+
             if vote_count > max_votes:
                 max_votes = vote_count
                 winners = [v["candidate__code"]]
             elif vote_count == max_votes:
                 winners.append(v["candidate__code"])
 
-        for res in results:
-            res["is_winner"] = res["candidate_code"] in winners
-
         return {
             "total_votes_position": total_votes_position,
-            "results": results,
+            "is_winner": bool(winners),
+            "results": results
         }
+
 
 class BlockchainResultsView(APIView):
     """
