@@ -1,14 +1,14 @@
+import os
+import logging
+from binascii import hexlify
+from hashlib import sha256
+from datetime import datetime
+from django.db import transaction
 from rest_framework import serializers
+from web3.exceptions import ContractLogicError
 from accounts.models import GENDER_CHOICES
 from votes.models import Vote
 from elections.models.candidates import Candidate
-from hashlib import sha256
-import logging
-from django.db import transaction
-from web3.exceptions import ContractLogicError
-import os
-from binascii import hexlify
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         position = validated_data["position"]
         election = validated_data["election"]
 
-        # 🔑 Generate ONE receipt tied to THIS candidate only
+        # Generate ONE receipt tied to THIS candidate only
         receipt_hash_hex = hexlify(os.urandom(32)).decode()
 
         try:

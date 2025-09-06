@@ -1,4 +1,3 @@
-# votes/serializers/history.py
 from rest_framework import serializers
 from votes.models import Vote
 from elections.models.candidates import Candidate

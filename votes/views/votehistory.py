@@ -1,13 +1,11 @@
-# votes/views/history.py
-
 from hashlib import sha256
-from rest_framework import generics, permissions
 from django.db.models import Prefetch, Count
 from django.db.models.functions import Coalesce
-from elections.models.candidates import Candidate
+from rest_framework import generics, permissions
+from votes.models import Vote
 from elections.models.elections import Election
 from elections.models.positions import Position
-from votes.models import Vote
+from elections.models.candidates import Candidate
 from votes.serializers.history import ElectionHistorySerializer
 
 class VoteHistoryView(generics.ListAPIView):

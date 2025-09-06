@@ -1,9 +1,8 @@
 from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import  status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from votes.models import Vote
 from votes.models import Vote
 
@@ -34,5 +33,9 @@ class VoteVerificationView(APIView):
             "position": vote.position.title,
             "candidate": vote.candidate.student.full_name,
             "timestamp": vote.timestamp,
+            "tx-hash": vote.tx_hash,
+            "receipt-hash": vote.receipt,
+            "block-number": vote.block_number,
+            "confirmations": vote.block_confirmations,
         })
 

@@ -1,10 +1,10 @@
 import logging
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from votes.serializers.votes import AnonymousVoteSerializer
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.response import Response
+from rest_framework import generics, permissions, status
 from web3.exceptions import ContractLogicError
+from votes.serializers.votes import AnonymousVoteSerializer
 
 logger = logging.getLogger(__name__)
 

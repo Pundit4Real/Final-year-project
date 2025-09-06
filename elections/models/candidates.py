@@ -2,8 +2,8 @@ from django.db import models
 from ckeditor.fields import RichTextField
 from ckeditor_uploader.fields import RichTextUploadingField
 from accounts.models import User
+from elections.models.positions import Position
 from accounts.utils import generate_code
-from .positions import Position
 from elections.directories import candidate_directory
 
 

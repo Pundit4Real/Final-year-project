@@ -2,6 +2,19 @@ from rest_framework import serializers
 from elections.models.candidates import Candidate
 
 
+class ImageSerializerMixin(serializers.ModelSerializer):
+    """Reusable mixin that provides an image field with absolute URL."""
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
+
+    class Meta:
+        abstract = True
+
 class CandidateSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
     position_code = serializers.CharField(source='position.code', read_only=True)
@@ -84,8 +97,3 @@ class CandidateNestedSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ['code', 'student', 'position']
 
-    def get_image(self, obj):
-        request = self.context.get('request')
-        if obj.image:
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
-        return None

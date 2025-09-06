@@ -1,13 +1,15 @@
-from blockchain.helpers import get_results,get_ballot_results
+from django.db.models import Count
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from blockchain.helpers import get_ballot_results
 from votes.models import Vote
 from elections.models.elections import Election
 from elections.models.positions import Position
-from django.db.models import Count
+from elections.models.candidates import Candidate
+from elections.serializers.candidates import ImageSerializerMixin
 
 
 class VoteResultsView(APIView):
@@ -87,9 +89,14 @@ class VoteResultsView(APIView):
         max_votes = 0
         winners = []
 
+        image_mixin = ImageSerializerMixin(context={"request": self.request})
+                                           
         for v in votes_qs:
             vote_count = v["total_votes"]
             percent = (vote_count / total_votes_position * 100) if total_votes_position else 0
+
+            candidate = Candidate.objects.get(code=v["candidate__code"])
+            candidate_image = image_mixin.get_image(candidate)
 
             # Fetch all receipts for this candidate in this position
             candidate_votes = Vote.objects.filter(
@@ -102,10 +109,10 @@ class VoteResultsView(APIView):
             results.append({
                 "candidate_full_name": v["candidate__student__full_name"],
                 "candidate_code": v["candidate__code"],
-                "candidate_image": v["candidate__image"],
+                "candidate_image": candidate_image,
                 "total_votes": vote_count,
                 "percentage": round(percent, 2),
-                "receipts": list(candidate_votes),  # 👈 include all receipts per candidate
+                "receipts": list(candidate_votes),
             })
 
             if vote_count > max_votes:

@@ -11,9 +11,8 @@ from elections.models.candidates import Candidate
 
 logger = logging.getLogger(__name__)
 
-# -----------------------------------------------------------------
 # Serializer for full ballot voting (voteBatch)
-# -----------------------------------------------------------------
+
 class BallotVoteSerializer(serializers.Serializer):
     election_code = serializers.CharField(write_only=True)
     votes = serializers.ListField(
