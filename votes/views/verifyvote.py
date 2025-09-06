@@ -32,10 +32,10 @@ class VoteVerificationView(APIView):
             "election": vote.election.title,
             "position": vote.position.title,
             "candidate": vote.candidate.student.full_name,
-            "timestamp": vote.timestamp,
-            "tx-hash": vote.tx_hash,
-            "receipt-hash": vote.receipt,
-            "block-number": vote.block_number,
+            "timestamp": vote.block_timestamp,
+            "tx_hash": vote.tx_hash,
+            "receipt_hash": vote.receipt,
+            "block_number": vote.block_number,
             "confirmations": vote.block_confirmations,
         })
 
