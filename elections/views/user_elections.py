@@ -3,6 +3,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from elections.filters import ElectionFilter
 from elections.models.elections import Election
 from elections.serializers.elections import ElectionSerializer, ElectionDetailSerializer
 
@@ -32,6 +33,8 @@ class BaseElectionView:
 class ElectionListView(BaseElectionView, generics.ListAPIView):
     serializer_class = ElectionSerializer
     permission_classes = [IsAuthenticated]
+    filterset_class = ElectionFilter
+
 
 
 class ElectionSummaryView(generics.GenericAPIView):
