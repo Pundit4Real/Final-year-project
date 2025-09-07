@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from elections.models.candidates import Candidate
+from accounts.models import User
 
 
 class ImageSerializerMixin(serializers.ModelSerializer):
@@ -17,6 +18,7 @@ class ImageSerializerMixin(serializers.ModelSerializer):
 
 class CandidateSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_level = serializers.IntegerField(source='student.current_level', read_only=True)
     position_code = serializers.CharField(source='position.code', read_only=True)
     position_title = serializers.CharField(source='position.title', read_only=True)
     election_title = serializers.CharField(source='position.election.title', read_only=True)
@@ -31,12 +33,14 @@ class CandidateSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'code',
             'student_name',
+            'student_level',
             'position_code',
             'position_title',
             'election_title',
             'student',
             'position',
         ]
+
 
     def get_image(self, obj):
         request = self.context.get('request')
@@ -87,6 +91,7 @@ class CandidateSerializer(serializers.ModelSerializer):
 
 class CandidateNestedSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_level = serializers.IntegerField(source='student.current_level', read_only=True)
     image = serializers.SerializerMethodField()
     bio = serializers.CharField(required=False, allow_blank=True)
     manifesto = serializers.CharField(required=False, allow_blank=True)

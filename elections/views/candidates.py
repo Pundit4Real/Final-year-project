@@ -50,7 +50,7 @@ class CandidateAdminListView(CandidateBaseView, generics.ListAPIView):
     Admin-only: List all candidates with related position and student details.
     """
     serializer_class = CandidateSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Candidate.objects.select_related(
