@@ -16,7 +16,7 @@ class ImageSerializerMixin(serializers.ModelSerializer):
     class Meta:
         abstract = True
 
-class CandidateSerializer(serializers.ModelSerializer):
+class CandidateSerializer(ImageSerializerMixin):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
     student_level = serializers.IntegerField(source='student.current_level', read_only=True)
     position_code = serializers.CharField(source='position.code', read_only=True)
@@ -89,7 +89,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         return data
 
 
-class CandidateNestedSerializer(serializers.ModelSerializer):
+class CandidateNestedSerializer(ImageSerializerMixin):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
     student_level = serializers.IntegerField(source='student.current_level', read_only=True)
     image = serializers.SerializerMethodField()
