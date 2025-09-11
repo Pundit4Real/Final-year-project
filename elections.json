@@ -1,0 +1,210 @@
+{
+  "elections": [
+    {
+      "title": "UENR SRC GENERAL ELECTIONS 2025",
+      "description": "University-wide elections for the Student Representative Council (SRC), aimed at selecting committed student leaders to represent the entire student body, promote transparency, and enhance student engagement in university governance.",
+      "start_date": "2025-09-05",
+      "end_date": "2025-09-15",
+      "school": null,
+      "department": null,
+      "positions": [
+        {
+          "title": "SRC President",
+          "description": "The overall student leader responsible for representing all students of UENR, leading initiatives to improve campus life, fostering collaboration among student groups, and acting as a liaison between students and the university administration.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": [],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3502721",
+              "position": "SRC President",
+              "bio": "CS Level 1 student, tech enthusiast with a passion for digital innovation and student empowerment. Experienced in organizing tech workshops and hackathons within the university.",
+              "manifesto": "Together for a Digital UENR: I will leverage technology to increase student participation in governance, improve communication channels, and create digital platforms for feedback and collaboration.",
+              "campaign_keywords": ["leadership", "technology", "transparency"]
+            },
+            {
+              "student": "UEB3509023",
+              "position": "SRC President",
+              "bio": "CS Level 4 student, peer mentor, and active volunteer in student welfare programs. Skilled in project coordination and leading team-based initiatives.",
+              "manifesto": "Unity Through Service: My goal is to strengthen student unity by promoting inclusive activities, mentorship programs, and community outreach projects to enhance student welfare.",
+              "campaign_keywords": ["service", "inclusion", "progress"]
+            }
+          ]
+        },
+        {
+          "title": "SRC General Secretary",
+          "description": "Handles official correspondence, manages records, and ensures proper documentation of SRC activities, while maintaining effective communication between students and the SRC leadership team.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": [],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3507521",
+              "position": "SRC General Secretary",
+              "bio": "Final year CS student with excellent organizational skills and experience in administrative coordination within student clubs and projects.",
+              "manifesto": "Better Communication, Better Records: I will implement streamlined communication systems and transparent documentation practices to ensure students are well-informed and engaged in SRC decisions.",
+              "campaign_keywords": ["communication", "records", "efficiency"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "SCHOOL OF SCIENCES GENERAL ELECTIONS 2025",
+      "description": "Elections to choose student leaders for the School of Sciences, focusing on enhancing student engagement, academic support, and representation of the school at university-wide platforms.",
+      "start_date": "2025-09-08",
+      "end_date": "2025-09-14",
+      "school": "School of Sciences",
+      "department": null,
+      "positions": [
+        {
+          "title": "School President",
+          "description": "Coordinates student leadership activities within the School of Sciences, represents the school in university-wide councils, and promotes academic excellence, welfare, and innovation among students.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": ["School of Sciences"],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3001123",
+              "position": "School President",
+              "bio": "Nursing Level 2 student, passionate about student welfare and academic development. Actively engages in peer counseling and student mentoring programs.",
+              "manifesto": "Welfare and Academic Balance: I will introduce support programs, academic resources, and wellness initiatives to ensure students thrive both academically and socially.",
+              "campaign_keywords": ["welfare", "academics", "balance"]
+            },
+            {
+              "student": "UEB3291824",
+              "position": "School President",
+              "bio": "IT Level 1 student, focused on innovation and promoting practical learning opportunities for students. Experienced in leading tech projects and student clubs.",
+              "manifesto": "Innovation and Growth: I aim to create platforms for student innovation, workshops, and research collaborations to foster academic growth and creativity.",
+              "campaign_keywords": ["innovation", "growth"]
+            }
+          ]
+        },
+        {
+          "title": "School Secretary",
+          "description": "Responsible for record-keeping, managing documentation, and assisting the School President in coordinating activities across the School of Sciences.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": ["School of Sciences"],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3006723",
+              "position": "School Secretary",
+              "bio": "Nursing Level 2 student, detail-oriented and skilled in administration. Experienced in managing student club records and event coordination.",
+              "manifesto": "Accurate Records for an Organized School: I will ensure proper documentation of school activities, timely communication, and efficient record-keeping practices.",
+              "campaign_keywords": ["administration", "organization"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "COMPUTER SCIENCE GENERAL ELECTIONS 2025",
+      "description": "Department-level elections for the Computer Science department, aiming to select student leaders who will enhance departmental activities, academic excellence, and student participation.",
+      "start_date": "2025-09-20",
+      "end_date": "2025-09-25",
+      "school": null,
+      "department": "Computer Science",
+      "positions": [
+        {
+          "title": "Department President",
+          "description": "Leads student initiatives within the Computer Science department, represents the department in academic and administrative meetings, and promotes teamwork, mentorship, and innovation.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": ["Computer Science"],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3523323",
+              "position": "Department President",
+              "bio": "CS Level 4 student, skilled in leadership and project management, with experience in organizing coding competitions and departmental workshops.",
+              "manifesto": "Transforming CS through Collaboration: I will create mentorship programs, collaborative projects, and workshops to strengthen student engagement and skills development.",
+              "campaign_keywords": ["collaboration", "innovation"]
+            },
+            {
+              "student": "UEB3504421",
+              "position": "Department President",
+              "bio": "CS Level 4 student, passionate about representing student interests and ensuring their voices are heard in departmental decisions.",
+              "manifesto": "A Stronger CS Voice: I aim to advocate for student needs, enhance academic support, and implement initiatives that empower students in their career paths.",
+              "campaign_keywords": ["representation", "strength"]
+            }
+          ]
+        },
+        {
+          "title": "Department Organizer",
+          "description": "Coordinates departmental events, workshops, and student activities, ensuring smooth execution and active participation from students.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": ["Computer Science"],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3509023",
+              "position": "Department Organizer",
+              "bio": "CS student actively involved in organizing coding bootcamps, workshops, and departmental events to enhance learning experiences.",
+              "manifesto": "More Coding Sessions and Career Events: I will organize practical sessions, industry collaborations, and events to provide real-world exposure to students.",
+              "campaign_keywords": ["events", "bootcamps", "career"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "AGRIBUSINESS DEPARTMENT ELECTIONS 2025",
+      "description": "Department-level elections for Agribusiness Management and Consumer Studies, aimed at selecting leaders who will improve student engagement, organize practical learning experiences, and represent the department effectively.",
+      "start_date": "2025-10-01",
+      "end_date": "2025-10-05",
+      "school": null,
+      "department": "Agribusiness Management and Consumer Studies",
+      "positions": [
+        {
+          "title": "Department President",
+          "description": "Head student leader in Agribusiness Management, responsible for coordinating departmental events, facilitating student participation, and promoting academic and professional development.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": ["Agribusiness Management and Consumer Studies"],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB0105822",
+              "position": "Department President",
+              "bio": "Agribusiness Level 3 student, dedicated to improving student support and practical learning experiences. Actively participates in departmental projects and mentorship programs.",
+              "manifesto": "Practical Agribusiness Experiences: I will introduce hands-on workshops, field projects, and networking opportunities to enhance learning and professional readiness.",
+              "campaign_keywords": ["agribusiness", "practical"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "NURSING DEPARTMENT ELECTIONS 2024",
+      "description": "Elections for the Nursing Department student leadership (previous cycle), aiming to choose representatives who will advocate for student welfare, support academic development, and enhance clinical learning opportunities.",
+      "start_date": "2024-06-01",
+      "end_date": "2024-06-05",
+      "school": null,
+      "department": "Nursing",
+      "positions": [
+        {
+          "title": "Department President",
+          "description": "Leads the Nursing Department students, coordinates welfare initiatives, promotes peer mentorship, and represents student concerns in departmental discussions.",
+          "eligible_levels": [1, 2, 3, 4],
+          "eligible_departments": ["Nursing"],
+          "gender": "A",
+          "candidates": [
+            {
+              "student": "UEB3001123",
+              "position": "Department President",
+              "bio": "Nursing student passionate about clinical excellence and student mentorship. Engaged in academic support programs and practical skill workshops.",
+              "manifesto": "Bridging Theory and Practice: I will ensure that students have access to practical clinical experiences alongside academic learning, enhancing overall competence.",
+              "campaign_keywords": ["clinical", "practice"]
+            },
+            {
+              "student": "UEB3006723",
+              "position": "Department President",
+              "bio": "Nursing student focused on student mentorship, welfare, and academic guidance. Experienced in coordinating peer support programs.",
+              "manifesto": "Peer Mentorship for Academic Excellence: I will establish structured mentorship systems to help students excel academically and professionally.",
+              "campaign_keywords": ["mentorship", "academic"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
