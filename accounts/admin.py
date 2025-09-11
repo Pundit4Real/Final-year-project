@@ -33,7 +33,7 @@ class UserAdmin(BaseUserAdmin):
     add_form = UserCreationForm
     model = User
     list_display = (
-        'index_number', 'full_name', 'email', 'gender', 'department', 
+        'index_number', 'full_name', 'email','id', 'gender', 'department', 
         'current_level', 'did', 'status', 'is_staff', 'is_active'
     )
     list_filter = ('is_staff', 'is_active', 'department', 'gender')
