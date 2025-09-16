@@ -40,7 +40,7 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('index_number', 'full_name', 'email', 'did')
     ordering = ('index_number',)
 
-    readonly_fields = ('did', 'wallet_address', 'private_key')
+    readonly_fields = ('index_number','did', 'wallet_address', 'private_key')
 
     fieldsets = (
         (None, {'fields': ('index_number', 'email', 'password')}),
