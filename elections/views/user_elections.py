@@ -27,7 +27,8 @@ class BaseElectionView:
         ).annotate(
             total_candidates=Count('positions__candidates', distinct=True),
             total_positions=Count('positions', distinct=True)
-        ).select_related('department', 'school')
+        ).select_related('department', 'school') \
+         .order_by('-created_at') 
 
 
 class ElectionListView(BaseElectionView, generics.ListAPIView):
@@ -50,7 +51,7 @@ class ElectionSummaryView(generics.GenericAPIView):
             Q(department__isnull=True, school__isnull=True) |
             Q(department=department) |
             Q(school=school)
-        )
+        ).order_by('-created_at')
 
     def get(self, request, *args, **kwargs):
         qs = self.get_queryset()
