@@ -1,5 +1,4 @@
-from django.db.models import Q, Count
-from django.db import models
+from django.db.models import Q, Count, Case, When, Value, IntegerField
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,22 +20,38 @@ class BaseElectionView:
         department = getattr(user, "department", None)
         school = getattr(department, "school", None) if department else None
 
-        return Election.objects.filter(
-            Q(department__isnull=True, school__isnull=True) |
-            Q(department=department) |
-            Q(school=school)
-        ).annotate(
-            total_candidates=Count('positions__candidates', distinct=True),
-            total_positions=Count('positions', distinct=True)
-        ).select_related('department', 'school') \
-         .order_by('-created_at') 
+        # ✅ Define custom status ordering
+        status_order = Case(
+            When(status=Election.Status.ONGOING, then=Value(1)),
+            When(status=Election.Status.UPCOMING, then=Value(2)),
+            When(status=Election.Status.POSTPONED, then=Value(3)),
+            When(status=Election.Status.ENDED, then=Value(4)),
+            When(status=Election.Status.DRAFT, then=Value(5)),
+            When(status=Election.Status.CANCELLED, then=Value(6)),
+            default=Value(7),
+            output_field=IntegerField(),
+        )
+
+        return (
+            Election.objects.filter(
+                Q(department__isnull=True, school__isnull=True)
+                | Q(department=department)
+                | Q(school=school)
+            )
+            .annotate(
+                total_candidates=Count('positions__candidates', distinct=True),
+                total_positions=Count('positions', distinct=True),
+                status_rank=status_order,  # add rank for ordering
+            )
+            .select_related('department', 'school')
+            .order_by('status_rank', '-created_at')  # ✅ enforce your flow
+        )
 
 
 class ElectionListView(BaseElectionView, generics.ListAPIView):
     serializer_class = ElectionSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = ElectionFilter
-
 
 
 class ElectionSummaryView(generics.GenericAPIView):
@@ -48,29 +63,11 @@ class ElectionSummaryView(generics.GenericAPIView):
         department = getattr(user, "department", None)
         school = getattr(department, "school", None) if department else None
 
-        # Custom status ranking
-        status_order = {
-            "ongoing": 1,
-            "upcoming": 2,
-            "postponed": 3,
-            "ended": 4,
-            "draft": 5,
-            "cancelled": 6,
-        }
-
-        queryset = Election.objects.filter(
-            Q(department__isnull=True, school__isnull=True) |
-            Q(department=department) |
-            Q(school=school)
-        ).annotate(
-            status_rank=models.Case(
-                *[models.When(status=k, then=models.Value(v)) for k, v in status_order.items()],
-                default=models.Value(99),
-                output_field=models.IntegerField(),
-            )
-        ).order_by("status_rank", "-created_at")
-
-        return queryset
+        return Election.objects.filter(
+            Q(department__isnull=True, school__isnull=True)
+            | Q(department=department)
+            | Q(school=school)
+        )
 
     def get(self, request, *args, **kwargs):
         qs = self.get_queryset()
@@ -80,6 +77,7 @@ class ElectionSummaryView(generics.GenericAPIView):
             ended=Count('id', filter=Q(status=Election.Status.ENDED)),
             postponed=Count('id', filter=Q(status=Election.Status.POSTPONED)),
             cancelled=Count('id', filter=Q(status=Election.Status.CANCELLED)),
+            draft=Count('id', filter=Q(status=Election.Status.DRAFT)),
             total=Count('id')
         )
         return Response(summary)
@@ -102,7 +100,6 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
         filtered_positions = []
         for pos in election.positions.all():
             if pos.is_user_eligible(user):
-                # Keep only eligible positions in serialized response
                 for serialized in data.get("positions", []):
                     if serialized["code"] == pos.code:
                         filtered_positions.append(serialized)
@@ -116,7 +113,8 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
             data["notice"] = "This election has ended. You can only view past results."
         else:
             data["notice"] = (
-                "You have already voted in this election." if data.get("has_voted")
+                "You have already voted in this election."
+                if data.get("has_voted")
                 else "Voting is currently open."
             )
 
