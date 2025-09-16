@@ -11,7 +11,7 @@ class Election(models.Model):
         UPCOMING = "upcoming", "Upcoming"
         ONGOING = "ongoing", "Ongoing"
         ENDED = "ended", "Ended"
-        SUSPENDED = "suspended", "Suspended"
+        POSTPONED = "postponed", "Postponed"
         CANCELLED = "cancelled", "Cancelled"
 
     code = models.CharField(max_length=20, unique=True, blank=True)
@@ -43,7 +43,7 @@ class Election(models.Model):
     def _compute_status(self):
         """Determine the status based on current date/time."""
         now = timezone.now()
-        if self.status in [self.Status.SUSPENDED, self.Status.CANCELLED]:
+        if self.status in [self.Status.POSTPONED, self.Status.CANCELLED]:
             return self.status
         if now < self.start_date:
             return self.Status.UPCOMING

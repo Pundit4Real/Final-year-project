@@ -59,7 +59,7 @@ class ElectionSummaryView(generics.GenericAPIView):
             upcoming=Count('id', filter=Q(status=Election.Status.UPCOMING)),
             ongoing=Count('id', filter=Q(status=Election.Status.ONGOING)),
             ended=Count('id', filter=Q(status=Election.Status.ENDED)),
-            suspended=Count('id', filter=Q(status=Election.Status.SUSPENDED)),
+            postponed=Count('id', filter=Q(status=Election.Status.POSTPONED)),
             cancelled=Count('id', filter=Q(status=Election.Status.CANCELLED)),
             total=Count('id')
         )

@@ -16,7 +16,7 @@ class ElectionFilter(django_filters.FilterSet):
             'upcoming': lambda e: e.get_status().lower() == 'upcoming',
             'ongoing': lambda e: e.get_status().lower() == 'ongoing',
             'ended': lambda e: e.get_status().lower() == 'ended',
-            'suspended': lambda e: e.get_status().lower() == 'suspended',
+            'postponed': lambda e: e.get_status().lower() == 'postponed',
             'cancelled': lambda e: e.get_status().lower() == 'cancelled',
         }
         status_filter = status_map.get(value.lower())

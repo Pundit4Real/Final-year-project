@@ -59,7 +59,7 @@ class AdminElectionSummaryView(generics.GenericAPIView):
             "upcoming": elections.filter(status=Election.Status.UPCOMING).count(),
             "ongoing": elections.filter(status=Election.Status.ONGOING).count(),
             "ended": elections.filter(status=Election.Status.ENDED).count(),
-            "suspended": elections.filter(status=Election.Status.SUSPENDED).count(),
+            "postponed": elections.filter(status=Election.Status.POSTPONED).count(),
             "cancelled": elections.filter(status=Election.Status.CANCELLED).count(),
             "total": elections.count()
         }
