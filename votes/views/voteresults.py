@@ -103,7 +103,7 @@ class VoteResultsView(APIView):
                 election=election, position=position, candidate__code=v["candidate__code"]
             ).values(
                 "receipt", "tx_hash", "status",
-                "block_number", "block_confirmations", "block_timestamp"
+                "block_number","network_fee_matic", "block_confirmations", "block_timestamp"
             )
 
             results.append({

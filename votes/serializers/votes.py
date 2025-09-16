@@ -3,6 +3,7 @@ import logging
 from binascii import hexlify
 from hashlib import sha256
 from datetime import datetime
+from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
 from web3.exceptions import ContractLogicError
@@ -24,10 +25,10 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
         fields = [
             "candidate_code", "position_code", "election_code",
             "timestamp", "receipt", "tx_hash", "is_synced",
-            "block_number", "block_confirmations", "block_timestamp", "status"
+            "block_number", "network_fee_matic","block_confirmations", "block_timestamp", "status"
         ]
         read_only_fields = [
-            "timestamp", "receipt", "tx_hash", "is_synced",
+            "timestamp", "receipt", "tx_hash", "is_synced","network_fee_matic",
             "block_number", "block_confirmations", "block_timestamp", "status"
         ]
 
@@ -110,7 +111,7 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
             # Best-effort update with blockchain info
             try:
                 block_number = tx_receipt.get("blockNumber")
-                confirmations, block_timestamp = None, None
+                confirmations, block_timestamp, fee_matic = None, None, None
                 status = "Success" if tx_receipt.get("status") == 1 else "Failed"
 
                 if block_number:
@@ -118,22 +119,33 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
                     latest_block = web3.eth.block_number
                     confirmations = latest_block - block_number
                     if isinstance(block.timestamp, (int, float)):
-                        block_timestamp = datetime.fromtimestamp(block.timestamp)
+                        block_timestamp = timezone.make_aware(datetime.fromtimestamp(block.timestamp))
+
+                # compute transaction fee directly from receipt
+                gas_used = tx_receipt.get("gasUsed")
+                gas_price = tx_receipt.get("effectiveGasPrice") or tx_receipt.get("gasPrice")
+                if gas_used and gas_price:
+                    fee_matic = web3.from_wei(gas_used * gas_price, "ether")
 
                 vote.block_number = block_number
                 vote.block_confirmations = confirmations
                 vote.block_timestamp = block_timestamp
                 vote.status = status
-                vote.save(update_fields=["block_number", "block_confirmations", "block_timestamp", "status"])
+                if fee_matic is not None:
+                    vote.network_fee_matic = str(fee_matic)  # store as string or Decimal depending on model
+                vote.save(update_fields=[
+                    "block_number", "block_confirmations", "block_timestamp",
+                    "status", "network_fee_matic"
+                ])
             except Exception as e:
                 logger.warning(f"Block info update failed after single vote: {e}")
 
             return vote
 
         except ContractLogicError as e:
-            if "Receipt already used" in str(e):
-                raise serializers.ValidationError("Blockchain reports duplicate receipt.")
-            raise
+                if "Receipt already used" in str(e):
+                    raise serializers.ValidationError("Blockchain reports duplicate receipt.")
+                raise
         except Exception as e:
-            logger.exception(f"Unexpected error while casting single vote: {e}")
-            raise serializers.ValidationError("Voting failed unexpectedly.")
+                logger.exception(f"Unexpected error while casting single vote: {e}")
+                raise serializers.ValidationError("Voting failed unexpectedly.")

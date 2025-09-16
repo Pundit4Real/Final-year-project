@@ -8,6 +8,7 @@ from rest_framework import serializers
 from votes.models import Vote
 from accounts.models import GENDER_CHOICES
 from elections.models.candidates import Candidate
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -107,33 +108,41 @@ class BallotVoteSerializer(serializers.Serializer):
                         is_synced=True,
                     )
                     created_votes.append(vote)
-
-            # Best-effort update with block info
             try:
-                block_number = tx_receipt.get('blockNumber')
-                confirmations, block_timestamp = None, None
-                status = "Success" if tx_receipt.get('status') == 1 else "Failed"
+                block_number = tx_receipt.get("blockNumber")
+                confirmations, block_timestamp, fee_matic = None, None, None
+                status = "Success" if tx_receipt.get("status") == 1 else "Failed"
 
                 if block_number:
                     block = web3.eth.get_block(block_number)
                     latest_block = web3.eth.block_number
                     confirmations = latest_block - block_number
                     if isinstance(block.timestamp, (int, float)):
-                        block_timestamp = datetime.fromtimestamp(block.timestamp)
+                        block_timestamp = timezone.make_aware(datetime.fromtimestamp(block.timestamp))
+
+                # compute transaction fee directly from receipt
+                gas_used = tx_receipt.get("gasUsed")
+                gas_price = tx_receipt.get("effectiveGasPrice") or tx_receipt.get("gasPrice")
+                if gas_used and gas_price:
+                    fee_matic = web3.from_wei(gas_used * gas_price, "ether")
 
                 for vote in created_votes:
                     vote.block_number = block_number
                     vote.block_confirmations = confirmations
                     vote.block_timestamp = block_timestamp
                     vote.status = status
+                    if fee_matic is not None:
+                        vote.network_fee_matic = str(fee_matic)  # store as string or Decimal
                     vote.save(update_fields=[
-                        "block_number", "block_confirmations", "block_timestamp", "status"
+                        "block_number", "block_confirmations", "block_timestamp",
+                        "status", "network_fee_matic"
                     ])
+
             except Exception as e:
                 logger.warning(f"Block info update failed after ballot vote: {e}")
 
             return created_votes
 
         except Exception as e:
-            logger.exception(f"Ballot voting failed unexpectedly: {e}")
-            raise serializers.ValidationError("Ballot voting failed due to an unexpected error.")
+                logger.exception(f"Ballot voting failed unexpectedly: {e}")
+                raise serializers.ValidationError("Ballot voting failed due to an unexpected error.")

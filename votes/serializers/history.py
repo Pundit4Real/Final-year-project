@@ -24,6 +24,7 @@ class VoteHistorySerializer(serializers.ModelSerializer):
             "tx_hash",
             "status",
             "block_number",
+            "network_fee_matic",
             "block_confirmations",
             "block_timestamp",
             "created_at",

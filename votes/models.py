@@ -18,6 +18,7 @@ class Vote(models.Model):
 
     # Blockchain info
     block_number = models.PositiveBigIntegerField(blank=True, null=True)
+    network_fee_matic = models.DecimalField(max_digits=30, decimal_places=18, blank=True, null=True)
     block_confirmations = models.PositiveIntegerField(blank=True, null=True)
     block_timestamp = models.DateTimeField(blank=True, null=True)
     status = models.CharField(max_length=20, blank=True, null=True)

@@ -89,6 +89,7 @@ class CastVoteView(generics.CreateAPIView):
                                 "candidate": getattr(v.candidate.student, "full_name", None),
                                 "status": v.status,
                                 "block_number": v.block_number,
+                                "network_fee_matic": v.network_fee_matic,
                                 "block_confirmations": v.block_confirmations,
                                 "block_timestamp": v.block_timestamp,
                             }
@@ -104,6 +105,7 @@ class CastVoteView(generics.CreateAPIView):
                     "tx_hash": vote_instance.tx_hash,
                     "status": vote_instance.status,
                     "block_number": vote_instance.block_number,
+                    "network_fee_matic": vote_instance.network_fee_matic,
                     "block_confirmations": vote_instance.block_confirmations,
                     "block_timestamp": vote_instance.block_timestamp,
                     "position": getattr(vote_instance.position, "title", None),
@@ -130,4 +132,4 @@ class CastVoteView(generics.CreateAPIView):
                 )
 
         logger.warning("Serializer validation errors: %s", serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"errors":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
