@@ -1,4 +1,5 @@
 from django.db.models import Q, Count
+from django.db import models
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -47,11 +48,29 @@ class ElectionSummaryView(generics.GenericAPIView):
         department = getattr(user, "department", None)
         school = getattr(department, "school", None) if department else None
 
-        return Election.objects.filter(
+        # Custom status ranking
+        status_order = {
+            "ongoing": 1,
+            "upcoming": 2,
+            "postponed": 3,
+            "ended": 4,
+            "draft": 5,
+            "cancelled": 6,
+        }
+
+        queryset = Election.objects.filter(
             Q(department__isnull=True, school__isnull=True) |
             Q(department=department) |
             Q(school=school)
-        ).order_by('-created_at')
+        ).annotate(
+            status_rank=models.Case(
+                *[models.When(status=k, then=models.Value(v)) for k, v in status_order.items()],
+                default=models.Value(99),
+                output_field=models.IntegerField(),
+            )
+        ).order_by("status_rank", "-created_at")
+
+        return queryset
 
     def get(self, request, *args, **kwargs):
         qs = self.get_queryset()
