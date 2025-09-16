@@ -46,8 +46,8 @@ class BallotVoteSerializer(serializers.Serializer):
 
             if election.code != election_code:
                 raise serializers.ValidationError("All votes must belong to the same election.")
-            if user.current_level == 4:
-                raise serializers.ValidationError("Level 400 students are not allowed to vote.")
+            # if user.current_level == 4:
+            #     raise serializers.ValidationError("Level 400 students are not allowed to vote.")
             if not position.is_user_eligible(user):
                 raise serializers.ValidationError(f"Not eligible for {position.title}")
             if not election.has_started():

@@ -55,8 +55,8 @@ class AnonymousVoteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Position code mismatch.")
         if data["election_code"] != election.code:
             raise serializers.ValidationError("Election code mismatch.")
-        if user.current_level == 4:
-            raise serializers.ValidationError("Level 400 students are not allowed to vote.")
+        # if user.current_level == 4:
+        #     raise serializers.ValidationError("Level 400 students are not allowed to vote.")
         if not position.is_user_eligible(user):
             raise serializers.ValidationError("You are not eligible to vote for this position.")
         if not election.has_started():
