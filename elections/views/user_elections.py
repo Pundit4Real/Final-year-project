@@ -20,7 +20,7 @@ class BaseElectionView:
         department = getattr(user, "department", None)
         school = getattr(department, "school", None) if department else None
 
-        # ✅ Define custom status ordering
+        # Define custom status ordering
         status_order = Case(
             When(status=Election.Status.ONGOING, then=Value(1)),
             When(status=Election.Status.UPCOMING, then=Value(2)),
@@ -41,10 +41,10 @@ class BaseElectionView:
             .annotate(
                 total_candidates=Count('positions__candidates', distinct=True),
                 total_positions=Count('positions', distinct=True),
-                status_rank=status_order,  # add rank for ordering
+                status_rank=status_order, 
             )
             .select_related('department', 'school')
-            .order_by('status_rank', '-created_at')  # ✅ enforce your flow
+            .order_by('status_rank', '-created_at') 
         )
 
 
@@ -95,7 +95,7 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
         election = self.get_object()
         data = self.get_serializer(election).data
 
-        # ✅ Filter positions using Position.is_user_eligible
+        # Filter positions using Position.is_user_eligible
         user = request.user
         filtered_positions = []
         for pos in election.positions.all():
@@ -106,7 +106,7 @@ class ElectionDetailView(BaseElectionView, generics.RetrieveAPIView):
                         break
         data["positions"] = filtered_positions
 
-        # ✅ Notices based on election status
+        # Notices based on election status
         if election.status == election.Status.UPCOMING:
             data["notice"] = "This election has not started yet. You can only view information."
         elif election.status == election.Status.ENDED:
